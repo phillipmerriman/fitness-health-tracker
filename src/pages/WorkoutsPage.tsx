@@ -81,6 +81,7 @@ export default function WorkoutsPage() {
                   onClick={() => handleDelete(session.id)}
                   className="rounded-lg p-1.5 text-surface-400 hover:bg-danger-50 hover:text-danger-600"
                   aria-label="Delete"
+                  title="Delete"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -88,6 +89,7 @@ export default function WorkoutsPage() {
                   onClick={() => navigate(`/workouts/${session.id}`)}
                   className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-600"
                   aria-label="Open"
+                  title="Open"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>

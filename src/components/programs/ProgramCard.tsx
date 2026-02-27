@@ -34,6 +34,7 @@ export default function ProgramCard({ program, onDelete, onSetActive }: ProgramC
             onClick={() => onSetActive(program.id)}
             className="rounded-lg p-1.5 text-surface-400 hover:bg-primary-50 hover:text-primary-600"
             aria-label="Set as active program"
+            title="Set as active"
           >
             <Play className="h-4 w-4" />
           </button>
@@ -42,6 +43,7 @@ export default function ProgramCard({ program, onDelete, onSetActive }: ProgramC
           to={`/plan/${program.id}`}
           className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-600"
           aria-label="Edit plan"
+          title="Edit plan"
         >
           <Pencil className="h-4 w-4" />
         </Link>
@@ -49,6 +51,7 @@ export default function ProgramCard({ program, onDelete, onSetActive }: ProgramC
           onClick={() => onDelete(program.id)}
           className="rounded-lg p-1.5 text-surface-400 hover:bg-danger-50 hover:text-danger-600"
           aria-label="Delete"
+          title="Delete"
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -56,6 +59,7 @@ export default function ProgramCard({ program, onDelete, onSetActive }: ProgramC
           to={`/programs/${program.id}`}
           className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-600"
           aria-label="View program details"
+          title="View details"
         >
           <ChevronRight className="h-4 w-4" />
         </Link>

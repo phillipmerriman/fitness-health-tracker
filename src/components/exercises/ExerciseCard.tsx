@@ -47,6 +47,7 @@ export default function ExerciseCard({
           onClick={() => onEdit(exercise)}
           className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-600"
           aria-label="Edit"
+          title="Edit"
         >
           <Pencil className="h-4 w-4" />
         </button>
@@ -55,6 +56,7 @@ export default function ExerciseCard({
             onClick={() => onUnarchive(exercise.id)}
             className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-600"
             aria-label="Unarchive"
+            title="Unarchive"
           >
             <ArchiveRestore className="h-4 w-4" />
           </button>
@@ -63,6 +65,7 @@ export default function ExerciseCard({
             onClick={() => onArchive(exercise.id)}
             className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-600"
             aria-label="Archive"
+            title="Archive"
           >
             <Archive className="h-4 w-4" />
           </button>
@@ -71,6 +74,7 @@ export default function ExerciseCard({
           onClick={() => onDelete(exercise.id)}
           className="rounded-lg p-1.5 text-surface-400 hover:bg-danger-50 hover:text-danger-600"
           aria-label="Delete"
+          title="Delete"
         >
           <Trash2 className="h-4 w-4" />
         </button>
