@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create vite@latest . -- --template react-ts)",
+      "Bash(npx --yes create-vite@latest temp-scaffold --template react-ts)",
+      "Bash(npm install)",
+      "Bash(npm install @supabase/supabase-js react-router-dom recharts date-fns lucide-react)",
+      "Bash(npm install -D tailwindcss @tailwindcss/vite)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx vite build)"
+    ]
+  }
+}
