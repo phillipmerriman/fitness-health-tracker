@@ -30,6 +30,7 @@ export default function ExerciseCard({
           <Badge variant="primary">{formatLabel(exercise.exercise_type)}</Badge>
           <Badge>{formatLabel(exercise.primary_muscle)}</Badge>
           <Badge>{formatLabel(exercise.equipment)}</Badge>
+          {exercise.exercise_rate && <Badge variant="info">{formatLabel(exercise.exercise_rate)}</Badge>}
           {exercise.is_archived && <Badge variant="warning">Archived</Badge>}
         </div>
         {exercise.notes && (

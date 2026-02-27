@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Plus, Search } from 'lucide-react'
 import useExercises from '@/hooks/useExercises'
 import type { Exercise } from '@/types/database'
-import type { ExerciseType, MuscleGroup, Equipment } from '@/types/common'
+import type { ExerciseType, ExerciseRate, MuscleGroup, Equipment } from '@/types/common'
 import ExerciseCard from '@/components/exercises/ExerciseCard'
 import ExerciseForm from '@/components/exercises/ExerciseForm'
 import Modal from '@/components/ui/Modal'
@@ -15,7 +15,15 @@ const typeFilterOptions = [
   { value: 'strength', label: 'Strength' },
   { value: 'cardio', label: 'Cardio' },
   { value: 'flexibility', label: 'Flexibility' },
+  { value: 'warm_up', label: 'Warm Up' },
+  { value: 'cool_down', label: 'Cool Down' },
   { value: 'other', label: 'Other' },
+]
+
+const rateFilterOptions = [
+  { value: '', label: 'All Rates' },
+  { value: 'ballistic', label: 'Ballistic' },
+  { value: 'grind', label: 'Grind' },
 ]
 
 const equipmentFilterOptions = [
@@ -58,6 +66,7 @@ export default function ExercisesPage() {
   const [typeFilter, setTypeFilter] = useState('')
   const [muscleFilter, setMuscleFilter] = useState('')
   const [equipmentFilter, setEquipmentFilter] = useState('')
+  const [rateFilter, setRateFilter] = useState('')
   const [showArchived, setShowArchived] = useState(false)
 
   const [modalOpen, setModalOpen] = useState(false)
@@ -71,10 +80,11 @@ export default function ExercisesPage() {
       if (typeFilter && e.exercise_type !== typeFilter) return false
       if (muscleFilter && e.primary_muscle !== muscleFilter) return false
       if (equipmentFilter && e.equipment !== equipmentFilter) return false
+      if (rateFilter && e.exercise_rate !== rateFilter) return false
       if (search && !e.name.toLowerCase().includes(search.toLowerCase())) return false
       return true
     })
-  }, [exercises, search, typeFilter, muscleFilter, equipmentFilter, showArchived])
+  }, [exercises, search, typeFilter, muscleFilter, equipmentFilter, rateFilter, showArchived])
 
   function openAdd() {
     setEditing(null)
@@ -94,6 +104,7 @@ export default function ExercisesPage() {
   async function handleSubmit(values: {
     name: string
     exercise_type: ExerciseType
+    exercise_rate: ExerciseRate | null
     primary_muscle: MuscleGroup
     equipment: Equipment
     notes: string
@@ -163,6 +174,12 @@ export default function ExercisesPage() {
           value={equipmentFilter}
           onChange={(e) => setEquipmentFilter(e.target.value)}
           className="w-40"
+        />
+        <Select
+          options={rateFilterOptions}
+          value={rateFilter}
+          onChange={(e) => setRateFilter(e.target.value)}
+          className="w-32"
         />
         <label className="flex items-center gap-1.5 text-sm text-surface-600">
           <input

@@ -145,6 +145,7 @@ export function seedExercisesIfNeeded(userId: string) {
       user_id: userId,
       name: seed.name,
       exercise_type: seed.exercise_type,
+      exercise_rate: seed.exercise_rate ?? null,
       primary_muscle: seed.primary_muscle,
       equipment: seed.equipment,
       notes: null,

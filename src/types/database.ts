@@ -36,7 +36,8 @@ export interface Database {
           id: string
           user_id: string
           name: string
-          exercise_type: 'strength' | 'cardio' | 'flexibility' | 'other'
+          exercise_type: 'strength' | 'cardio' | 'flexibility' | 'warm_up' | 'cool_down' | 'other'
+          exercise_rate: 'ballistic' | 'grind' | null
           primary_muscle: string
           equipment: string
           notes: string | null
@@ -48,7 +49,8 @@ export interface Database {
           id?: string
           user_id: string
           name: string
-          exercise_type?: 'strength' | 'cardio' | 'flexibility' | 'other'
+          exercise_type?: 'strength' | 'cardio' | 'flexibility' | 'warm_up' | 'cool_down' | 'other'
+          exercise_rate?: 'ballistic' | 'grind' | null
           primary_muscle?: string
           equipment?: string
           notes?: string | null
@@ -58,7 +60,8 @@ export interface Database {
         }
         Update: {
           name?: string
-          exercise_type?: 'strength' | 'cardio' | 'flexibility' | 'other'
+          exercise_type?: 'strength' | 'cardio' | 'flexibility' | 'warm_up' | 'cool_down' | 'other'
+          exercise_rate?: 'ballistic' | 'grind' | null
           primary_muscle?: string
           equipment?: string
           notes?: string | null

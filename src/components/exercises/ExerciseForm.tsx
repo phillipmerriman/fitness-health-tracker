@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import type { Exercise } from '@/types/database'
-import type { ExerciseType, MuscleGroup, Equipment } from '@/types/common'
+import type { ExerciseType, ExerciseRate, MuscleGroup, Equipment } from '@/types/common'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
@@ -9,6 +9,8 @@ const exerciseTypeOptions: { value: ExerciseType; label: string }[] = [
   { value: 'strength', label: 'Strength' },
   { value: 'cardio', label: 'Cardio' },
   { value: 'flexibility', label: 'Flexibility' },
+  { value: 'warm_up', label: 'Warm Up' },
+  { value: 'cool_down', label: 'Cool Down' },
   { value: 'other', label: 'Other' },
 ]
 
@@ -30,6 +32,12 @@ const muscleOptions: { value: MuscleGroup; label: string }[] = [
   { value: 'other', label: 'Other' },
 ]
 
+const exerciseRateOptions: { value: string; label: string }[] = [
+  { value: '', label: 'None' },
+  { value: 'ballistic', label: 'Ballistic' },
+  { value: 'grind', label: 'Grind' },
+]
+
 const equipmentOptions: { value: Equipment; label: string }[] = [
   { value: 'barbell', label: 'Barbell' },
   { value: 'dumbbell', label: 'Dumbbell' },
@@ -48,6 +56,7 @@ interface ExerciseFormProps {
   onSubmit: (values: {
     name: string
     exercise_type: ExerciseType
+    exercise_rate: ExerciseRate | null
     primary_muscle: MuscleGroup
     equipment: Equipment
     notes: string
@@ -64,6 +73,9 @@ export default function ExerciseForm({ initial, onSubmit, onCancel, submitting }
   const [primaryMuscle, setPrimaryMuscle] = useState<MuscleGroup>(
     (initial?.primary_muscle as MuscleGroup) ?? 'other',
   )
+  const [exerciseRate, setExerciseRate] = useState<ExerciseRate | null>(
+    (initial?.exercise_rate as ExerciseRate) ?? null,
+  )
   const [equipment, setEquipment] = useState<Equipment>(
     (initial?.equipment as Equipment) ?? 'bodyweight',
   )
@@ -71,7 +83,7 @@ export default function ExerciseForm({ initial, onSubmit, onCancel, submitting }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    await onSubmit({ name: name.trim(), exercise_type: exerciseType, primary_muscle: primaryMuscle, equipment, notes: notes.trim() })
+    await onSubmit({ name: name.trim(), exercise_type: exerciseType, exercise_rate: exerciseRate, primary_muscle: primaryMuscle, equipment, notes: notes.trim() })
   }
 
   return (
@@ -99,6 +111,14 @@ export default function ExerciseForm({ initial, onSubmit, onCancel, submitting }
         value={primaryMuscle}
         onChange={(e) => setPrimaryMuscle(e.target.value as MuscleGroup)}
         options={muscleOptions}
+      />
+
+      <Select
+        id="exercise-rate"
+        label="Rate"
+        value={exerciseRate ?? ''}
+        onChange={(e) => setExerciseRate((e.target.value || null) as ExerciseRate | null)}
+        options={exerciseRateOptions}
       />
 
       <Select

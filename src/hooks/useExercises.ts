@@ -39,6 +39,7 @@ export default function useExercises() {
         user_id: user.id,
         name: values.name,
         exercise_type: values.exercise_type ?? 'strength',
+        exercise_rate: values.exercise_rate ?? null,
         primary_muscle: values.primary_muscle ?? 'other',
         equipment: values.equipment ?? 'bodyweight',
         notes: values.notes ?? null,

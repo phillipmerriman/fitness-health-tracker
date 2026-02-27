@@ -6,7 +6,7 @@ import useWeeklyPlan from '@/hooks/useWeeklyPlan'
 import useExercises from '@/hooks/useExercises'
 import usePrograms from '@/hooks/usePrograms'
 import type { Exercise } from '@/types/database'
-import type { ExerciseType, MuscleGroup, Equipment } from '@/types/common'
+import type { ExerciseType, ExerciseRate, MuscleGroup, Equipment } from '@/types/common'
 import ExerciseForm from '@/components/exercises/ExerciseForm'
 import Modal from '@/components/ui/Modal'
 import Badge from '@/components/ui/Badge'
@@ -66,6 +66,7 @@ export default function WeeklyPlanPage() {
   async function handleCreateExercise(values: {
     name: string
     exercise_type: ExerciseType
+    exercise_rate: ExerciseRate | null
     primary_muscle: MuscleGroup
     equipment: Equipment
     notes: string
