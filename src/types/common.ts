@@ -16,7 +16,9 @@ export type {
   UpdateDto,
 } from './database'
 
-export type ExerciseType = 'strength' | 'cardio' | 'flexibility' | 'other'
+export type ExerciseType = 'strength' | 'cardio' | 'flexibility' | 'warm_up' | 'cool_down' | 'other'
+
+export type ExerciseRate = 'ballistic' | 'grind'
 
 export type MuscleGroup =
   | 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps'

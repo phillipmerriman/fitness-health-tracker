@@ -1,14 +1,42 @@
-import type { ExerciseType, MuscleGroup, Equipment } from '@/types/common'
+import type { ExerciseType, MuscleGroup, Equipment, ExerciseRate } from '@/types/common'
 
 interface SeedExercise {
   name: string
   exercise_type: ExerciseType
+  exercise_rate?: ExerciseRate
   primary_muscle: MuscleGroup
   equipment: Equipment
 }
 
 export const SEED_EXERCISES: SeedExercise[] = [
-  // Chest
+  // Lower Body
+  { name: 'Swing - 2 Handed', exercise_rate: 'ballistic', exercise_type: 'strength', primary_muscle: 'lower_body', equipment: 'kettlebell' },
+  { name: 'Swing - 1 Handed', exercise_rate: 'ballistic', exercise_type: 'strength', primary_muscle: 'lower_body', equipment: 'kettlebell' },
+  { name: 'Swing - H2H', exercise_rate: 'ballistic', exercise_type: 'strength', primary_muscle: 'lower_body', equipment: 'kettlebell' },
+  { name: 'Barbell Back Squat', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'barbell' },
+  { name: 'Front Squat', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'barbell' },
+  { name: 'Goblet Squat - Bottoms Up', exercise_rate: 'grind', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'kettlebell' },
+  { name: 'Leg Press', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'machine' },
+  { name: 'Leg Extension', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'machine' },
+  { name: 'Bulgarian Split Squat', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'dumbbell' },
+  { name: 'Walking Lunge', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'dumbbell' },
+  { name: 'Hack Squat', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'machine' },
+  { name: 'Romanian Deadlift', exercise_type: 'strength', primary_muscle: 'hamstrings', equipment: 'barbell' },
+  { name: 'Dumbbell Romanian Deadlift', exercise_type: 'strength', primary_muscle: 'hamstrings', equipment: 'dumbbell' },
+  { name: 'Lying Leg Curl', exercise_type: 'strength', primary_muscle: 'hamstrings', equipment: 'machine' },
+  { name: 'Seated Leg Curl', exercise_type: 'strength', primary_muscle: 'hamstrings', equipment: 'machine' },
+  { name: 'Good Morning', exercise_type: 'strength', primary_muscle: 'hamstrings', equipment: 'barbell' },
+  { name: 'Nordic Hamstring Curl', exercise_type: 'strength', primary_muscle: 'hamstrings', equipment: 'bodyweight' },
+  { name: 'Hip Thrust', exercise_type: 'strength', primary_muscle: 'glutes', equipment: 'barbell' },
+  { name: 'Glute Bridge', exercise_type: 'strength', primary_muscle: 'glutes', equipment: 'bodyweight' },
+  { name: 'Cable Kickback', exercise_type: 'strength', primary_muscle: 'glutes', equipment: 'cable' },
+  { name: 'Step-Up', exercise_type: 'strength', primary_muscle: 'glutes', equipment: 'dumbbell' },
+  { name: 'Standing Calf Raise', exercise_type: 'strength', primary_muscle: 'calves', equipment: 'machine' },
+  { name: 'Seated Calf Raise', exercise_type: 'strength', primary_muscle: 'calves', equipment: 'machine' },
+  { name: 'Bodyweight Calf Raise', exercise_type: 'strength', primary_muscle: 'calves', equipment: 'bodyweight' },
+
+  // Upper Body
+  { name: 'Kettlebell Press', exercise_rate: 'grind', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'kettlebell' },
   { name: 'Barbell Bench Press', exercise_type: 'strength', primary_muscle: 'chest', equipment: 'barbell' },
   { name: 'Incline Barbell Bench Press', exercise_type: 'strength', primary_muscle: 'chest', equipment: 'barbell' },
   { name: 'Dumbbell Bench Press', exercise_type: 'strength', primary_muscle: 'chest', equipment: 'dumbbell' },
@@ -19,8 +47,6 @@ export const SEED_EXERCISES: SeedExercise[] = [
   { name: 'Chest Dip', exercise_type: 'strength', primary_muscle: 'chest', equipment: 'bodyweight' },
   { name: 'Machine Chest Press', exercise_type: 'strength', primary_muscle: 'chest', equipment: 'machine' },
   { name: 'Pec Deck', exercise_type: 'strength', primary_muscle: 'chest', equipment: 'machine' },
-
-  // Back
   { name: 'Barbell Row', exercise_type: 'strength', primary_muscle: 'back', equipment: 'barbell' },
   { name: 'Dumbbell Row', exercise_type: 'strength', primary_muscle: 'back', equipment: 'dumbbell' },
   { name: 'Pull-Up', exercise_type: 'strength', primary_muscle: 'back', equipment: 'bodyweight' },
@@ -31,8 +57,6 @@ export const SEED_EXERCISES: SeedExercise[] = [
   { name: 'Face Pull', exercise_type: 'strength', primary_muscle: 'back', equipment: 'cable' },
   { name: 'Deadlift', exercise_type: 'strength', primary_muscle: 'back', equipment: 'barbell' },
   { name: 'Rack Pull', exercise_type: 'strength', primary_muscle: 'back', equipment: 'barbell' },
-
-  // Shoulders
   { name: 'Overhead Press', exercise_type: 'strength', primary_muscle: 'shoulders', equipment: 'barbell' },
   { name: 'Dumbbell Shoulder Press', exercise_type: 'strength', primary_muscle: 'shoulders', equipment: 'dumbbell' },
   { name: 'Arnold Press', exercise_type: 'strength', primary_muscle: 'shoulders', equipment: 'dumbbell' },
@@ -42,8 +66,6 @@ export const SEED_EXERCISES: SeedExercise[] = [
   { name: 'Reverse Fly', exercise_type: 'strength', primary_muscle: 'shoulders', equipment: 'dumbbell' },
   { name: 'Upright Row', exercise_type: 'strength', primary_muscle: 'shoulders', equipment: 'barbell' },
   { name: 'Machine Shoulder Press', exercise_type: 'strength', primary_muscle: 'shoulders', equipment: 'machine' },
-
-  // Biceps
   { name: 'Barbell Curl', exercise_type: 'strength', primary_muscle: 'biceps', equipment: 'barbell' },
   { name: 'Dumbbell Curl', exercise_type: 'strength', primary_muscle: 'biceps', equipment: 'dumbbell' },
   { name: 'Hammer Curl', exercise_type: 'strength', primary_muscle: 'biceps', equipment: 'dumbbell' },
@@ -51,8 +73,6 @@ export const SEED_EXERCISES: SeedExercise[] = [
   { name: 'Cable Curl', exercise_type: 'strength', primary_muscle: 'biceps', equipment: 'cable' },
   { name: 'Incline Dumbbell Curl', exercise_type: 'strength', primary_muscle: 'biceps', equipment: 'dumbbell' },
   { name: 'Concentration Curl', exercise_type: 'strength', primary_muscle: 'biceps', equipment: 'dumbbell' },
-
-  // Triceps
   { name: 'Tricep Pushdown', exercise_type: 'strength', primary_muscle: 'triceps', equipment: 'cable' },
   { name: 'Overhead Tricep Extension', exercise_type: 'strength', primary_muscle: 'triceps', equipment: 'dumbbell' },
   { name: 'Skull Crusher', exercise_type: 'strength', primary_muscle: 'triceps', equipment: 'barbell' },
@@ -60,37 +80,6 @@ export const SEED_EXERCISES: SeedExercise[] = [
   { name: 'Tricep Dip', exercise_type: 'strength', primary_muscle: 'triceps', equipment: 'bodyweight' },
   { name: 'Cable Overhead Extension', exercise_type: 'strength', primary_muscle: 'triceps', equipment: 'cable' },
   { name: 'Diamond Push-Up', exercise_type: 'strength', primary_muscle: 'triceps', equipment: 'bodyweight' },
-
-  // Quads
-  { name: 'Barbell Back Squat', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'barbell' },
-  { name: 'Front Squat', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'barbell' },
-  { name: 'Goblet Squat', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'dumbbell' },
-  { name: 'Leg Press', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'machine' },
-  { name: 'Leg Extension', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'machine' },
-  { name: 'Bulgarian Split Squat', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'dumbbell' },
-  { name: 'Walking Lunge', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'dumbbell' },
-  { name: 'Hack Squat', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'machine' },
-
-  // Hamstrings
-  { name: 'Romanian Deadlift', exercise_type: 'strength', primary_muscle: 'hamstrings', equipment: 'barbell' },
-  { name: 'Dumbbell Romanian Deadlift', exercise_type: 'strength', primary_muscle: 'hamstrings', equipment: 'dumbbell' },
-  { name: 'Lying Leg Curl', exercise_type: 'strength', primary_muscle: 'hamstrings', equipment: 'machine' },
-  { name: 'Seated Leg Curl', exercise_type: 'strength', primary_muscle: 'hamstrings', equipment: 'machine' },
-  { name: 'Good Morning', exercise_type: 'strength', primary_muscle: 'hamstrings', equipment: 'barbell' },
-  { name: 'Nordic Hamstring Curl', exercise_type: 'strength', primary_muscle: 'hamstrings', equipment: 'bodyweight' },
-
-  // Glutes
-  { name: 'Hip Thrust', exercise_type: 'strength', primary_muscle: 'glutes', equipment: 'barbell' },
-  { name: 'Glute Bridge', exercise_type: 'strength', primary_muscle: 'glutes', equipment: 'bodyweight' },
-  { name: 'Cable Kickback', exercise_type: 'strength', primary_muscle: 'glutes', equipment: 'cable' },
-  { name: 'Step-Up', exercise_type: 'strength', primary_muscle: 'glutes', equipment: 'dumbbell' },
-
-  // Calves
-  { name: 'Standing Calf Raise', exercise_type: 'strength', primary_muscle: 'calves', equipment: 'machine' },
-  { name: 'Seated Calf Raise', exercise_type: 'strength', primary_muscle: 'calves', equipment: 'machine' },
-  { name: 'Bodyweight Calf Raise', exercise_type: 'strength', primary_muscle: 'calves', equipment: 'bodyweight' },
-
-  // Core
   { name: 'Plank', exercise_type: 'strength', primary_muscle: 'core', equipment: 'bodyweight' },
   { name: 'Hanging Leg Raise', exercise_type: 'strength', primary_muscle: 'core', equipment: 'bodyweight' },
   { name: 'Cable Crunch', exercise_type: 'strength', primary_muscle: 'core', equipment: 'cable' },
@@ -98,27 +87,26 @@ export const SEED_EXERCISES: SeedExercise[] = [
   { name: 'Russian Twist', exercise_type: 'strength', primary_muscle: 'core', equipment: 'bodyweight' },
   { name: 'Dead Bug', exercise_type: 'strength', primary_muscle: 'core', equipment: 'bodyweight' },
   { name: 'Pallof Press', exercise_type: 'strength', primary_muscle: 'core', equipment: 'cable' },
-
-  // Forearms
   { name: 'Wrist Curl', exercise_type: 'strength', primary_muscle: 'forearms', equipment: 'dumbbell' },
   { name: 'Reverse Wrist Curl', exercise_type: 'strength', primary_muscle: 'forearms', equipment: 'dumbbell' },
   { name: 'Farmer\'s Walk', exercise_type: 'strength', primary_muscle: 'forearms', equipment: 'dumbbell' },
 
   // Full Body
-  { name: 'Clean and Press', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'barbell' },
-  { name: 'Kettlebell Swing', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'kettlebell' },
-  { name: 'Turkish Get-Up', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'kettlebell' },
-  { name: 'Burpee', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'bodyweight' },
+  { name: 'Clean and Press', exercise_rate: 'grind', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'kettlebell' },
+  { name: 'Clean', exercise_rate: 'ballistic', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'kettlebell' },
+  { name: 'Turkish Get-Up', exercise_rate: 'grind', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'kettlebell' },
+  { name: 'Snatch', exercise_rate: 'ballistic', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'kettlebell' },
+  { name: 'Burpee', exercise_rate: 'grind', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'bodyweight' },
   { name: 'Thruster', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'barbell' },
 
   // Steel Mace
   { name: '360 Swing', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'steel_mace' },
   { name: '10-to-2', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'steel_mace' },
-  { name: 'Grave Digger', exercise_type: 'strength', primary_muscle: 'core', equipment: 'steel_mace' },
-  { name: 'Mace Squat', exercise_type: 'strength', primary_muscle: 'quads', equipment: 'steel_mace' },
+  { name: 'Grave Digger', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'steel_mace' },
+  { name: 'Mace Squat', exercise_type: 'strength', primary_muscle: 'lower_body', equipment: 'steel_mace' },
 
   // Steel Club
-  { name: 'Club Mill', exercise_type: 'strength', primary_muscle: 'shoulders', equipment: 'steel_club' },
+  { name: 'Club Mill', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'steel_club' },
   { name: 'Club Swing', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'steel_club' },
 
   // Cardio
@@ -135,6 +123,10 @@ export const SEED_EXERCISES: SeedExercise[] = [
   { name: 'Hip Flexor Stretch', exercise_type: 'flexibility', primary_muscle: 'quads', equipment: 'bodyweight' },
   { name: 'Shoulder Dislocate', exercise_type: 'flexibility', primary_muscle: 'shoulders', equipment: 'band' },
   { name: 'Cat-Cow Stretch', exercise_type: 'flexibility', primary_muscle: 'back', equipment: 'bodyweight' },
+  
+  // Other
+  { name: 'Warm Up', exercise_type: 'warm_up', primary_muscle: 'full_body', equipment: 'bodyweight' },
+  { name: 'Cool Down', exercise_type: 'cool_down', primary_muscle: 'full_body', equipment: 'bodyweight' },
 ]
 
 const SEED_KEY = 'fittrack:exercises_seeded'
