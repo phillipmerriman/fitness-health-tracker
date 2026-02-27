@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
+import { X } from 'lucide-react'
 import { format, nextSunday } from 'date-fns'
 import type { Program } from '@/types/database'
+import { cn } from '@/lib/utils'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 
@@ -34,6 +36,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, submitting }:
         required
         value={name}
         onChange={(e) => setName(e.target.value)}
+        onClear={() => setName('')}
         placeholder="e.g. Push Pull Legs"
       />
 
@@ -41,14 +44,29 @@ export default function ProgramForm({ initial, onSubmit, onCancel, submitting }:
         <label htmlFor="program-desc" className="block text-sm font-medium text-surface-700">
           Description
         </label>
-        <textarea
-          id="program-desc"
-          rows={2}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="block w-full rounded-lg border border-surface-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-          placeholder="Optional description..."
-        />
+        <div className="relative">
+          <textarea
+            id="program-desc"
+            rows={2}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className={cn(
+              'block w-full rounded-lg border border-surface-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500',
+              description && 'pr-8',
+            )}
+            placeholder="Optional description..."
+          />
+          {description && (
+            <button
+              type="button"
+              onClick={() => setDescription('')}
+              className="absolute right-2 top-2 rounded p-0.5 text-surface-400 hover:text-surface-600"
+              aria-label="Clear description"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       <Input

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, X } from 'lucide-react'
 import useExercises from '@/hooks/useExercises'
 import type { Exercise } from '@/types/database'
 import type { ExerciseType, ExerciseRate, MuscleGroup, Equipment } from '@/types/common'
@@ -107,6 +107,7 @@ export default function ExercisesPage() {
     exercise_rate: ExerciseRate | null
     primary_muscle: MuscleGroup
     equipment: Equipment
+    color: string | null
     notes: string
   }) {
     setSubmitting(true)
@@ -154,8 +155,18 @@ export default function ExercisesPage() {
             placeholder="Search exercises..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-surface-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className="w-full rounded-lg border border-surface-300 py-2 pl-9 pr-8 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-surface-400 hover:text-surface-600"
+              aria-label="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
         <Select
           options={typeFilterOptions}

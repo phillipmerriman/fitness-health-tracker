@@ -1,5 +1,7 @@
 import { Archive, ArchiveRestore, Pencil, Trash2 } from 'lucide-react'
 import type { Exercise } from '@/types/database'
+import { getExerciseColorClasses } from '@/types/common'
+import { cn } from '@/lib/utils'
 import Badge from '@/components/ui/Badge'
 import Card from '@/components/ui/Card'
 
@@ -22,8 +24,10 @@ export default function ExerciseCard({
   onUnarchive,
   onDelete,
 }: ExerciseCardProps) {
+  const colorClasses = getExerciseColorClasses(exercise.color)
+
   return (
-    <Card className="flex items-start justify-between gap-3">
+    <Card className={cn('flex items-start justify-between gap-3 border-l-4', colorClasses.border)}>
       <div className="min-w-0 flex-1">
         <p className="font-medium text-surface-900">{exercise.name}</p>
         <div className="mt-1.5 flex flex-wrap gap-1.5">

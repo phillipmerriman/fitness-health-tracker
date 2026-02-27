@@ -41,6 +41,7 @@ export interface Database {
           primary_muscle: string
           equipment: string
           notes: string | null
+          color: string | null
           is_archived: boolean
           created_at: string
           updated_at: string
@@ -54,6 +55,7 @@ export interface Database {
           primary_muscle?: string
           equipment?: string
           notes?: string | null
+          color?: string | null
           is_archived?: boolean
           created_at?: string
           updated_at?: string
@@ -65,6 +67,7 @@ export interface Database {
           primary_muscle?: string
           equipment?: string
           notes?: string | null
+          color?: string | null
           is_archived?: boolean
           updated_at?: string
         }

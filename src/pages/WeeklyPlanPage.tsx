@@ -7,6 +7,7 @@ import useExercises from '@/hooks/useExercises'
 import usePrograms from '@/hooks/usePrograms'
 import type { Exercise } from '@/types/database'
 import type { ExerciseType, ExerciseRate, MuscleGroup, Equipment } from '@/types/common'
+import { getExerciseColorClasses } from '@/types/common'
 import ExerciseForm from '@/components/exercises/ExerciseForm'
 import Modal from '@/components/ui/Modal'
 import Badge from '@/components/ui/Badge'
@@ -69,6 +70,7 @@ export default function WeeklyPlanPage() {
     exercise_rate: ExerciseRate | null
     primary_muscle: MuscleGroup
     equipment: Equipment
+    color: string | null
     notes: string
   }) {
     setCreatingExercise(true)
@@ -251,16 +253,20 @@ export default function WeeklyPlanPage() {
                 <div className="flex flex-1 flex-col gap-1 p-1.5">
                   {planned.map((entry) => {
                     const ex = getExercise(entry.exercise_id)
+                    const entryColor = getExerciseColorClasses(ex?.color ?? null)
                     return (
                       <div
                         key={entry.id}
                         draggable
                         onDragStart={(e) => handleEntryDragStart(e, entry.id, dateKey)}
                         onDragEnd={handleDragEnd}
-                        className="group flex items-start gap-1 rounded-lg border border-surface-200 bg-white p-1.5 text-[11px] shadow-sm cursor-grab active:cursor-grabbing"
+                        className={cn(
+                          'group flex items-start gap-1 rounded-lg border p-1.5 text-[11px] shadow-sm cursor-grab active:cursor-grabbing',
+                          ex?.color ? `${entryColor.bg} ${entryColor.border}` : 'border-surface-200 bg-white',
+                        )}
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium text-surface-800">
+                          <p className={cn('truncate font-medium', ex?.color ? entryColor.text : 'text-surface-800')}>
                             {getExerciseName(entry.exercise_id)}
                           </p>
                           {ex && (
@@ -308,25 +314,42 @@ export default function WeeklyPlanPage() {
                   <Plus className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <input
-                type="text"
-                placeholder="Search..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="mt-1.5 w-full rounded border border-surface-200 px-2 py-1 text-xs focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              />
+              <div className="relative mt-1.5">
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full rounded border border-surface-200 px-2 py-1 pr-6 text-xs focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-surface-400 hover:text-surface-600"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
             </div>
             <div className="max-h-[60vh] overflow-y-auto p-2">
               <div className="space-y-1">
-                {filtered.map((exercise) => (
+                {filtered.map((exercise) => {
+                  const poolColor = getExerciseColorClasses(exercise.color)
+                  return (
                   <div
                     key={exercise.id}
                     draggable
                     onDragStart={(e) => handlePoolDragStart(e, exercise.id)}
                     onDragEnd={handleDragEnd}
-                    className="rounded-lg border border-surface-200 bg-surface-50 px-2.5 py-1.5 cursor-grab active:cursor-grabbing hover:border-primary-300 hover:bg-primary-50/30 transition-colors"
+                    className={cn(
+                      'rounded-lg border px-2.5 py-1.5 cursor-grab active:cursor-grabbing hover:border-primary-300 transition-colors',
+                      exercise.color ? `${poolColor.bg} ${poolColor.border}` : 'border-surface-200 bg-surface-50',
+                    )}
                   >
-                    <p className="text-xs font-medium text-surface-800 truncate">
+                    <p className={cn('text-xs font-medium truncate', exercise.color ? poolColor.text : 'text-surface-800')}>
                       {exercise.name}
                     </p>
                     <div className="mt-0.5 flex gap-1">
@@ -334,7 +357,8 @@ export default function WeeklyPlanPage() {
                       <Badge className="!text-[9px] !px-1 !py-0">{formatLabel(exercise.equipment)}</Badge>
                     </div>
                   </div>
-                ))}
+                  )
+                })}
                 {filtered.length === 0 && (
                   <p className="py-4 text-center text-[11px] text-surface-400">
                     {activeExercises.length === 0 ? 'Add exercises first' : 'No matches'}
