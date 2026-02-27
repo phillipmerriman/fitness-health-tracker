@@ -7,12 +7,11 @@ import Card from '@/components/ui/Card'
 
 interface ProgramCardProps {
   program: Program
-  onEdit: (program: Program) => void
   onDelete: (id: string) => void
   onSetActive: (id: string) => void
 }
 
-export default function ProgramCard({ program, onEdit, onDelete, onSetActive }: ProgramCardProps) {
+export default function ProgramCard({ program, onDelete, onSetActive }: ProgramCardProps) {
   return (
     <Card className="flex items-start justify-between gap-3">
       <Link to={`/programs/${program.id}`} className="min-w-0 flex-1">
@@ -39,13 +38,13 @@ export default function ProgramCard({ program, onEdit, onDelete, onSetActive }: 
             <Play className="h-4 w-4" />
           </button>
         )}
-        <button
-          onClick={() => onEdit(program)}
+        <Link
+          to={`/plan/${program.id}`}
           className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-600"
-          aria-label="Edit"
+          aria-label="Edit plan"
         >
           <Pencil className="h-4 w-4" />
-        </button>
+        </Link>
         <button
           onClick={() => onDelete(program.id)}
           className="rounded-lg p-1.5 text-surface-400 hover:bg-danger-50 hover:text-danger-600"
