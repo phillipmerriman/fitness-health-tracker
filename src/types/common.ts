@@ -30,26 +30,26 @@ export type Equipment =
   | 'bodyweight' | 'kettlebell' | 'band' | 'steel_mace' | 'steel_club' | 'other'
 
 export const EXERCISE_COLORS = [
-  { value: 'slate', label: 'Slate', bg: 'bg-slate-100', border: 'border-slate-300', text: 'text-slate-700' },
-  { value: 'red', label: 'Red', bg: 'bg-red-100', border: 'border-red-300', text: 'text-red-700' },
-  { value: 'orange', label: 'Orange', bg: 'bg-orange-100', border: 'border-orange-300', text: 'text-orange-700' },
-  { value: 'amber', label: 'Amber', bg: 'bg-amber-100', border: 'border-amber-300', text: 'text-amber-700' },
-  { value: 'yellow', label: 'Yellow', bg: 'bg-yellow-100', border: 'border-yellow-300', text: 'text-yellow-700' },
-  { value: 'lime', label: 'Lime', bg: 'bg-lime-100', border: 'border-lime-300', text: 'text-lime-700' },
-  { value: 'green', label: 'Green', bg: 'bg-green-100', border: 'border-green-300', text: 'text-green-700' },
-  { value: 'teal', label: 'Teal', bg: 'bg-teal-100', border: 'border-teal-300', text: 'text-teal-700' },
-  { value: 'cyan', label: 'Cyan', bg: 'bg-cyan-100', border: 'border-cyan-300', text: 'text-cyan-700' },
-  { value: 'blue', label: 'Blue', bg: 'bg-blue-100', border: 'border-blue-300', text: 'text-blue-700' },
-  { value: 'indigo', label: 'Indigo', bg: 'bg-indigo-100', border: 'border-indigo-300', text: 'text-indigo-700' },
-  { value: 'violet', label: 'Violet', bg: 'bg-violet-100', border: 'border-violet-300', text: 'text-violet-700' },
-  { value: 'purple', label: 'Purple', bg: 'bg-purple-100', border: 'border-purple-300', text: 'text-purple-700' },
-  { value: 'pink', label: 'Pink', bg: 'bg-pink-100', border: 'border-pink-300', text: 'text-pink-700' },
-  { value: 'rose', label: 'Rose', bg: 'bg-rose-100', border: 'border-rose-300', text: 'text-rose-700' },
+  { value: 'slate', label: 'Slate', bg: 'bg-slate-100', border: 'border-slate-300', text: 'text-slate-700', dot: 'bg-slate-400' },
+  { value: 'red', label: 'Red', bg: 'bg-red-100', border: 'border-red-300', text: 'text-red-700', dot: 'bg-red-400' },
+  { value: 'orange', label: 'Orange', bg: 'bg-orange-100', border: 'border-orange-300', text: 'text-orange-700', dot: 'bg-orange-400' },
+  { value: 'amber', label: 'Amber', bg: 'bg-amber-100', border: 'border-amber-300', text: 'text-amber-700', dot: 'bg-amber-400' },
+  { value: 'yellow', label: 'Yellow', bg: 'bg-yellow-100', border: 'border-yellow-300', text: 'text-yellow-700', dot: 'bg-yellow-400' },
+  { value: 'lime', label: 'Lime', bg: 'bg-lime-100', border: 'border-lime-300', text: 'text-lime-700', dot: 'bg-lime-400' },
+  { value: 'green', label: 'Green', bg: 'bg-green-100', border: 'border-green-300', text: 'text-green-700', dot: 'bg-green-400' },
+  { value: 'teal', label: 'Teal', bg: 'bg-teal-100', border: 'border-teal-300', text: 'text-teal-700', dot: 'bg-teal-400' },
+  { value: 'cyan', label: 'Cyan', bg: 'bg-cyan-100', border: 'border-cyan-300', text: 'text-cyan-700', dot: 'bg-cyan-400' },
+  { value: 'blue', label: 'Blue', bg: 'bg-blue-100', border: 'border-blue-300', text: 'text-blue-700', dot: 'bg-blue-400' },
+  { value: 'indigo', label: 'Indigo', bg: 'bg-indigo-100', border: 'border-indigo-300', text: 'text-indigo-700', dot: 'bg-indigo-400' },
+  { value: 'violet', label: 'Violet', bg: 'bg-violet-100', border: 'border-violet-300', text: 'text-violet-700', dot: 'bg-violet-400' },
+  { value: 'purple', label: 'Purple', bg: 'bg-purple-100', border: 'border-purple-300', text: 'text-purple-700', dot: 'bg-purple-400' },
+  { value: 'pink', label: 'Pink', bg: 'bg-pink-100', border: 'border-pink-300', text: 'text-pink-700', dot: 'bg-pink-400' },
+  { value: 'rose', label: 'Rose', bg: 'bg-rose-100', border: 'border-rose-300', text: 'text-rose-700', dot: 'bg-rose-400' },
 ] as const
 
 export type ExerciseColor = (typeof EXERCISE_COLORS)[number]['value']
 
-const NO_COLOR = { value: '', label: 'None', bg: '', border: '', text: '' } as const
+const NO_COLOR = { value: '', label: 'None', bg: '', border: '', text: '', dot: '' } as const
 
 export function getExerciseColorClasses(color: string | null) {
   if (!color) return NO_COLOR

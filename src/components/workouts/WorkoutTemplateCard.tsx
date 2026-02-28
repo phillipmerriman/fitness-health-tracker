@@ -1,6 +1,6 @@
 import { Pencil, Trash2 } from 'lucide-react'
 import type { WorkoutTemplate, WorkoutTemplateExercise, Exercise } from '@/types/database'
-import { formatReps } from '@/types/common'
+import { formatReps, getExerciseColorClasses } from '@/types/common'
 import type { TemplateExerciseExtras } from '@/hooks/useWorkoutTemplates'
 import Badge from '@/components/ui/Badge'
 import Card from '@/components/ui/Card'
@@ -22,8 +22,8 @@ export default function WorkoutTemplateCard({
   onEdit,
   onDelete,
 }: WorkoutTemplateCardProps) {
-  function getExerciseName(exerciseId: string) {
-    return exercises.find((e) => e.id === exerciseId)?.name ?? 'Unknown'
+  function getExercise(exerciseId: string) {
+    return exercises.find((e) => e.id === exerciseId)
   }
 
   return (
@@ -57,6 +57,8 @@ export default function WorkoutTemplateCard({
         {templateExercises.length > 0 && (
           <div className="mt-2 space-y-0.5">
             {templateExercises.map((te) => {
+              const ex = getExercise(te.exercise_id)
+              const color = getExerciseColorClasses(ex?.color ?? null)
               const extras = parseExtras(te.notes)
               const repsDisplay = formatReps(
                 extras.rep_type,
@@ -64,15 +66,18 @@ export default function WorkoutTemplateCard({
                 extras.reps_right,
               )
               return (
-                <p key={te.id} className="text-xs text-surface-600">
-                  <u>{getExerciseName(te.exercise_id)}</u>
-                  {te.target_sets != null && ` — ${te.target_sets > 1 ? `${te.target_sets} sets` : '1 set'}`}
-                  {repsDisplay && ` × ${repsDisplay}`}
-                  {extras.weight_unit === 'bodyweight'
-                    ? ' BW'
-                    : te.target_weight != null
-                      ? ` @ ${te.target_weight}${extras.weight_unit}`
-                      : ''}
+                <p key={te.id} className="flex items-center gap-1.5 text-xs text-surface-600">
+                  {color.dot && <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${color.dot}`} />}
+                  <span>
+                    <u>{ex?.name ?? 'Unknown'}</u>
+                    {te.target_sets != null && ` — ${te.target_sets > 1 ? `${te.target_sets} sets` : '1 set'}`}
+                    {repsDisplay && ` × ${repsDisplay}`}
+                    {extras.weight_unit === 'bodyweight'
+                      ? ' BW'
+                      : te.target_weight != null
+                        ? ` @ ${te.target_weight}${extras.weight_unit}`
+                        : ''}
+                  </span>
                 </p>
               )
             })}
