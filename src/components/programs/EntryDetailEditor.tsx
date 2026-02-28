@@ -21,6 +21,7 @@ export default function EntryDetailEditor({
   const [weight, setWeight] = useState(entry.weight ?? '')
   const [weightUnit, setWeightUnit] = useState<WeightUnit>(entry.weight_unit)
   const [intensity, setIntensity] = useState<'light' | 'heavy' | null>(entry.intensity ?? null)
+  const [notes, setNotes] = useState(entry.notes ?? '')
 
   // Time fields (derived from reps stored as total seconds)
   const [timeMin, setTimeMin] = useState(() =>
@@ -56,6 +57,7 @@ export default function EntryDetailEditor({
       weight: weightUnit === 'bodyweight' ? null : (weight === '' ? null : Number(weight)),
       weight_unit: weightUnit,
       intensity,
+      notes: notes.trim() || null,
     })
     onClose()
   }
@@ -228,6 +230,18 @@ export default function EntryDetailEditor({
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Notes */}
+        <div>
+          <label className="text-[10px] font-medium text-surface-500">Notes</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className={`${inputClass} resize-none`}
+            rows={2}
+            placeholder="Optional notes..."
+          />
         </div>
 
         {/* Save button */}

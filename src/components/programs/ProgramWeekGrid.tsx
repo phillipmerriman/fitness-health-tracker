@@ -238,6 +238,7 @@ export default function ProgramWeekGrid({
                       onDragStart={(e) => handleEntryDragStart(e, entry.id)}
                       onDragEnd={handleEntryDragEnd}
                       onClick={() => setEditingEntryId(editingEntryId === entry.id ? null : entry.id)}
+                      title={entry.notes || undefined}
                       className={cn(
                         'group flex items-start gap-1 rounded-lg border p-1.5 text-[11px] shadow-sm cursor-pointer transition-opacity',
                         ex?.color ? `${entryColor.bg} ${entryColor.border}` : 'border-surface-200 bg-white',
@@ -249,6 +250,15 @@ export default function ProgramWeekGrid({
                           {ex?.name ?? 'Unknown'}
                         </p>
                         <div className="mt-0.5 space-y-0 text-[10px] text-surface-500">
+                          {entry.intensity && (
+                            <span className={`inline-block rounded-full px-1.5 py-0 text-[9px] font-semibold uppercase ${
+                              entry.intensity === 'light'
+                                ? 'bg-info-500/10 text-info-600'
+                                : 'bg-danger-500/10 text-danger-600'
+                            }`}>
+                              {entry.intensity}
+                            </span>
+                          )}
                           {entry.sets != null && <p>Sets: {entry.sets}</p>}
                           {repsDisplay && (
                             <p>{entry.rep_type === 'time' ? 'Time: ' : entry.rep_type === 'reps_per_minute' ? '' : 'Reps: '}{repsDisplay}</p>
