@@ -27,9 +27,27 @@ export default function WorkoutTemplateCard({
   }
 
   return (
-    <Card className="flex items-start justify-between gap-3">
-      <div className="min-w-0 flex-1">
-        <p className="font-medium text-surface-900">{template.name}</p>
+    <Card className="relative">
+      <div className="absolute right-3 top-3 flex gap-1">
+        <button
+          onClick={() => onEdit(template)}
+          className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-600"
+          aria-label="Edit"
+          title="Edit"
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => onDelete(template.id)}
+          className="rounded-lg p-1.5 text-surface-400 hover:bg-danger-50 hover:text-danger-600"
+          aria-label="Delete"
+          title="Delete"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+      <div>
+        <p className="pr-16 font-medium text-surface-900">{template.name}</p>
         {template.description && (
           <p className="mt-0.5 text-xs text-surface-500">{template.description}</p>
         )}
@@ -60,25 +78,6 @@ export default function WorkoutTemplateCard({
             })}
           </div>
         )}
-      </div>
-
-      <div className="flex shrink-0 gap-1">
-        <button
-          onClick={() => onEdit(template)}
-          className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-600"
-          aria-label="Edit"
-          title="Edit"
-        >
-          <Pencil className="h-4 w-4" />
-        </button>
-        <button
-          onClick={() => onDelete(template.id)}
-          className="rounded-lg p-1.5 text-surface-400 hover:bg-danger-50 hover:text-danger-600"
-          aria-label="Delete"
-          title="Delete"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
       </div>
     </Card>
   )
