@@ -1,35 +1,61 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus, Trash2, ChevronRight } from 'lucide-react'
-import useWorkouts from '@/hooks/useWorkouts'
-import Button from '@/components/ui/Button'
-import Card from '@/components/ui/Card'
-import Badge from '@/components/ui/Badge'
+import { useMemo, useState } from 'react'
+import { Plus, Search, X } from 'lucide-react'
+import useWorkoutTemplates from '@/hooks/useWorkoutTemplates'
+import useExercises from '@/hooks/useExercises'
+import WorkoutTemplateCard from '@/components/workouts/WorkoutTemplateCard'
+import WorkoutTemplateForm from '@/components/workouts/WorkoutTemplateForm'
+import type { TemplateFormEntry } from '@/components/workouts/WorkoutTemplateForm'
 import Modal from '@/components/ui/Modal'
-import Input from '@/components/ui/Input'
+import Button from '@/components/ui/Button'
 import Spinner from '@/components/ui/Spinner'
-import { formatDate, formatDuration } from '@/lib/utils'
 
 export default function WorkoutsPage() {
-  const { sessions, loading, create, remove } = useWorkouts()
-  const navigate = useNavigate()
+  const { templates, loading: templatesLoading, getExercisesForTemplate, create, addExercise, remove, parseExtras } = useWorkoutTemplates()
+  const { exercises, loading: exercisesLoading } = useExercises()
 
+  const loading = templatesLoading || exercisesLoading
+
+  const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
-  const [name, setName] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  async function handleStart() {
+  const filtered = useMemo(() => {
+    if (!search) return templates
+    const q = search.toLowerCase()
+    return templates.filter((t) => t.name.toLowerCase().includes(q))
+  }, [templates, search])
+
+  async function handleCreate(data: { name: string; description: string; entries: TemplateFormEntry[] }) {
     setSubmitting(true)
     try {
-      const session = await create({ name: name.trim() || 'Workout' })
-      if (session) navigate(`/workouts/${session.id}`)
+      const template = await create(data.name, data.description || undefined)
+      if (!template) return
+      for (const entry of data.entries) {
+        const extras = {
+          rep_type: entry.rep_type,
+          reps_right: entry.reps_right,
+          weight_unit: entry.weight_unit,
+          target_duration_sec: entry.rep_type === 'time' ? entry.reps : null,
+        }
+        await addExercise(template.id, {
+          exercise_id: entry.exercise_id,
+          sort_order: entry.sort_order,
+          target_sets: entry.sets,
+          target_reps: entry.rep_type === 'time' ? null : entry.reps,
+          target_weight: entry.weight,
+          target_duration_sec: entry.rep_type === 'time' ? entry.reps : null,
+          rest_seconds: null,
+          notes: JSON.stringify(extras),
+        })
+      }
+      setModalOpen(false)
     } finally {
       setSubmitting(false)
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Delete this workout session?')) return
+    if (!confirm('Delete this workout template?')) return
     await remove(id)
   }
 
@@ -44,77 +70,67 @@ export default function WorkoutsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Workouts</h1>
+        <h1 className="text-2xl font-bold">Saved Workouts</h1>
         <Button onClick={() => setModalOpen(true)} size="sm">
           <Plus className="h-4 w-4" />
-          Start Workout
+          New Workout
         </Button>
       </div>
 
-      {sessions.length === 0 ? (
+      {/* Search */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+          <input
+            type="text"
+            placeholder="Search workouts..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-lg border border-surface-300 py-2 pl-9 pr-8 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-surface-400 hover:text-surface-600"
+              aria-label="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Grid */}
+      {filtered.length === 0 ? (
         <div className="py-12 text-center text-surface-400">
-          No workouts yet. Start your first session!
+          {templates.length === 0
+            ? 'No saved workouts yet. Create one or save a day from a program!'
+            : 'No workouts match your search.'}
         </div>
       ) : (
-        <div className="space-y-3">
-          {sessions.map((session) => (
-            <Card key={session.id} className="flex items-center justify-between gap-3">
-              <button
-                onClick={() => navigate(`/workouts/${session.id}`)}
-                className="min-w-0 flex-1 text-left"
-              >
-                <p className="font-medium text-surface-900">{session.name}</p>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-surface-500">
-                  <span>{formatDate(session.started_at)}</span>
-                  {session.duration_sec != null && (
-                    <Badge>{formatDuration(session.duration_sec)}</Badge>
-                  )}
-                  {session.completed_at ? (
-                    <Badge variant="primary">Completed</Badge>
-                  ) : (
-                    <Badge variant="warning">In Progress</Badge>
-                  )}
-                </div>
-              </button>
-              <div className="flex shrink-0 gap-1">
-                <button
-                  onClick={() => handleDelete(session.id)}
-                  className="rounded-lg p-1.5 text-surface-400 hover:bg-danger-50 hover:text-danger-600"
-                  aria-label="Delete"
-                  title="Delete"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => navigate(`/workouts/${session.id}`)}
-                  className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-600"
-                  aria-label="Open"
-                  title="Open"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </Card>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filtered.map((template) => (
+            <WorkoutTemplateCard
+              key={template.id}
+              template={template}
+              templateExercises={getExercisesForTemplate(template.id)}
+              exercises={exercises}
+              parseExtras={parseExtras}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Start Workout">
-        <div className="space-y-4">
-          <Input
-            id="workout-name"
-            label="Workout Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Push Day, Upper Body"
-          />
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleStart} disabled={submitting}>
-              {submitting ? 'Starting...' : 'Start'}
-            </Button>
-          </div>
-        </div>
+      {/* Create modal */}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New Workout" size="xl">
+        <WorkoutTemplateForm
+          exercises={exercises}
+          onSubmit={handleCreate}
+          onCancel={() => setModalOpen(false)}
+          submitting={submitting}
+        />
       </Modal>
     </div>
   )

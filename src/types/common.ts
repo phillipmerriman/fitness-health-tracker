@@ -60,7 +60,7 @@ export type UnitSystem = 'imperial' | 'metric'
 
 export type RecordType = 'max_weight' | 'max_reps' | 'max_volume' | 'max_duration'
 
-export type RepType = 'single' | 'left_right' | 'reverse_ladder' | 'double_reverse_ladder' | 'ladder' | 'double_ladder' | 'time'
+export type RepType = 'single' | 'left_right' | 'reverse_ladder' | 'double_reverse_ladder' | 'ladder' | 'double_ladder' | 'time' | 'reps_per_minute'
 
 export type WeightUnit = 'lbs' | 'kg' | 'pood' | 'bodyweight'
 
@@ -72,6 +72,7 @@ export const REP_TYPE_OPTIONS: { value: RepType; label: string }[] = [
   { value: 'ladder', label: 'Ladder' },
   { value: 'double_ladder', label: 'Double Ladder' },
   { value: 'time', label: 'Time' },
+  { value: 'reps_per_minute', label: 'Reps / Min' },
 ]
 
 export const WEIGHT_UNIT_OPTIONS: { value: WeightUnit; label: string }[] = [
@@ -118,6 +119,8 @@ export function formatReps(repType: RepType, reps: number | null, repsRight?: nu
       const secs = reps % 60
       return `${mins}:${secs.toString().padStart(2, '0')}`
     }
+    case 'reps_per_minute':
+      return `${reps}/min × ${repsRight ?? 1}min`
     default:
       return `${reps}`
   }

@@ -97,7 +97,7 @@ export default function EntryDetailEditor({
           </select>
         </div>
 
-        {/* Reps — show time inputs for 'time', number input otherwise */}
+        {/* Reps — show time inputs for 'time', reps+minutes for 'reps_per_minute', number input otherwise */}
         {repType === 'time' ? (
           <div>
             <label className="text-[10px] font-medium text-surface-500">Duration</label>
@@ -123,6 +123,31 @@ export default function EntryDetailEditor({
               <span className="text-[10px] text-surface-400">sec</span>
             </div>
           </div>
+        ) : repType === 'reps_per_minute' ? (
+          <>
+            <div>
+              <label className="text-[10px] font-medium text-surface-500">Reps / Min</label>
+              <input
+                type="number"
+                min={1}
+                value={reps}
+                onChange={(e) => setReps(e.target.value === '' ? '' : Number(e.target.value))}
+                className={inputClass}
+                placeholder="10"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-medium text-surface-500">Minutes</label>
+              <input
+                type="number"
+                min={1}
+                value={repsRight}
+                onChange={(e) => setRepsRight(e.target.value === '' ? '' : Number(e.target.value))}
+                className={inputClass}
+                placeholder="5"
+              />
+            </div>
+          </>
         ) : (
           <div>
             <label className="text-[10px] font-medium text-surface-500">{repType === 'left_right' ? 'Reps (Left)' : 'Reps'}</label>

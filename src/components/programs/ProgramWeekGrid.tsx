@@ -183,7 +183,7 @@ export default function ProgramWeekGrid({
                         <div className="mt-0.5 space-y-0 text-[10px] text-surface-500">
                           {entry.sets != null && <p>Sets: {entry.sets}</p>}
                           {repsDisplay && (
-                            <p>{entry.rep_type === 'time' ? 'Time' : 'Reps'}: {repsDisplay}</p>
+                            <p>{entry.rep_type === 'time' ? 'Time: ' : entry.rep_type === 'reps_per_minute' ? '' : 'Reps: '}{repsDisplay}</p>
                           )}
                           {(entry.weight_unit === 'bodyweight' || entry.weight != null) && (
                             <p>{formatWeightWithConversion(entry.weight, entry.weight_unit, preferredUnit)}</p>

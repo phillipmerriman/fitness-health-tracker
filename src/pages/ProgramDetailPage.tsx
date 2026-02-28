@@ -76,14 +76,14 @@ export default function ProgramDetailPage() {
 
   function handleTemplateDrop(dateKey: string, templateId: string) {
     const templateExercises = getExercisesForTemplate(templateId)
-    for (const tex of texs) {
-      const extras = parseExtras(tex.notes)
-      addEntry(dateKey, tex.exercise_id, {
-        sets: tex.target_sets,
-        reps: extras.rep_type === 'time' ? tex.target_duration_sec : tex.target_reps,
+    for (const exercise of templateExercises) {
+      const extras = parseExtras(exercise.notes)
+      addEntry(dateKey, exercise.exercise_id, {
+        sets: exercise.target_sets,
+        reps: extras.rep_type === 'time' ? exercise.target_duration_sec : exercise.target_reps,
         rep_type: extras.rep_type,
         reps_right: extras.reps_right,
-        weight: tex.target_weight,
+        weight: exercise.target_weight,
         weight_unit: extras.weight_unit,
       })
     }

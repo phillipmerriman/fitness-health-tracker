@@ -100,7 +100,7 @@ export const SEED_EXERCISES: SeedExercise[] = [
   { name: 'Thruster', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'barbell' },
 
   // Steel Mace
-  { name: '360 Swing', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'steel_mace' },
+  { name: '360 Shield Cast', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'steel_mace' },
   { name: '10-to-2', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'steel_mace' },
   { name: 'Grave Digger', exercise_type: 'strength', primary_muscle: 'full_body', equipment: 'steel_mace' },
   { name: 'Mace Squat', exercise_type: 'strength', primary_muscle: 'lower_body', equipment: 'steel_mace' },
