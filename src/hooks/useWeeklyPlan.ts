@@ -9,11 +9,20 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import type { RepType, WeightUnit } from '@/types/common'
 
+export type Session = 'morning' | 'noon' | 'night'
+export const SESSIONS: Session[] = ['morning', 'noon', 'night']
+export const SESSION_LABELS: Record<Session, string> = {
+  morning: 'Morning',
+  noon: 'Noon',
+  night: 'Night',
+}
+
 export interface PlannedEntry {
   id: string
   user_id: string
   program_id: string | null
   date: string        // YYYY-MM-DD
+  session: Session
   exercise_id: string
   sort_order: number
   sets: number | null
@@ -26,7 +35,7 @@ export interface PlannedEntry {
   notes: string | null
 }
 
-export type PlannedEntryUpdate = Partial<Pick<PlannedEntry, 'exercise_id' | 'sets' | 'reps' | 'rep_type' | 'reps_right' | 'weight' | 'weight_unit' | 'intensity' | 'notes'>>
+export type PlannedEntryUpdate = Partial<Pick<PlannedEntry, 'exercise_id' | 'sets' | 'reps' | 'rep_type' | 'reps_right' | 'weight' | 'weight_unit' | 'intensity' | 'notes' | 'session'>>
 
 const STORAGE_KEY = 'fittrack:weekly_plan'
 
@@ -44,6 +53,7 @@ function loadAll(): PlannedEntry[] {
     weight_unit: 'lbs' as WeightUnit,
     intensity: null,
     notes: null,
+    session: 'noon' as Session,
     ...e,
   }))
 }
@@ -100,16 +110,23 @@ export default function useWeeklyPlan(options: UseWeeklyPlanOptions = {}) {
       .sort((a, b) => a.sort_order - b.sort_order)
   }
 
-  function addEntry(dateKey: string, exerciseId: string, presets?: PlannedEntryUpdate) {
+  function getEntriesForDateSession(dateKey: string, session: Session) {
+    return entries
+      .filter((e) => e.date === dateKey && e.session === session)
+      .sort((a, b) => a.sort_order - b.sort_order)
+  }
+
+  function addEntry(dateKey: string, exerciseId: string, presets?: PlannedEntryUpdate, session: Session = 'morning') {
     if (!user) return
-    const dateEntries = entries.filter((e) => e.date === dateKey)
+    const sessionEntries = entries.filter((e) => e.date === dateKey && e.session === session)
     const entry: PlannedEntry = {
       id: crypto.randomUUID(),
       user_id: user.id,
       program_id: programId,
       date: dateKey,
+      session,
       exercise_id: exerciseId,
-      sort_order: dateEntries.length,
+      sort_order: sessionEntries.length,
       sets: presets?.sets ?? 3,
       reps: presets?.reps ?? 10,
       rep_type: presets?.rep_type ?? 'single',
@@ -142,18 +159,20 @@ export default function useWeeklyPlan(options: UseWeeklyPlanOptions = {}) {
     setEntries((prev) => prev.filter((e) => e.id !== id))
   }
 
-  function moveEntry(entryId: string, toDateKey: string, toIndex: number) {
+  function moveEntry(entryId: string, toDateKey: string, toIndex: number, toSession?: Session) {
     const all = loadAll()
     const idx = all.findIndex((e) => e.id === entryId)
     if (idx === -1) return
 
     all[idx].date = toDateKey
+    if (toSession) all[idx].session = toSession
 
-    const dateEntries = all
-      .filter((e) => e.date === toDateKey && e.user_id === user?.id && (programId ? e.program_id === programId : true))
+    const targetSession = all[idx].session
+    const sessionEntries = all
+      .filter((e) => e.date === toDateKey && e.session === targetSession && e.user_id === user?.id && (programId ? e.program_id === programId : true))
       .sort((a, b) => a.sort_order - b.sort_order)
 
-    const withoutMoved = dateEntries.filter((e) => e.id !== entryId)
+    const withoutMoved = sessionEntries.filter((e) => e.id !== entryId)
     withoutMoved.splice(toIndex, 0, all[idx])
     withoutMoved.forEach((e, i) => {
       const globalIdx = all.findIndex((a) => a.id === e.id)
@@ -182,6 +201,7 @@ export default function useWeeklyPlan(options: UseWeeklyPlanOptions = {}) {
     weekStart,
     weekEnd,
     getEntriesForDate,
+    getEntriesForDateSession,
     addEntry,
     updateEntry,
     removeEntry,
@@ -265,6 +285,7 @@ export function pasteWeekEntries(
         user_id: userId,
         program_id: programId,
         date: targetDate,
+        session: src.session ?? 'noon' as Session,
         exercise_id: src.exercise_id,
         sort_order: existingCount + i,
         sets: src.sets,

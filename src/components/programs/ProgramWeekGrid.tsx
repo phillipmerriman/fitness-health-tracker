@@ -1,14 +1,20 @@
 import { useState, useEffect, type DragEvent } from 'react'
-import { X, Trash2, Save } from 'lucide-react'
+import { X, Trash2, Save, ChevronRight, Sun, CloudSun, Moon } from 'lucide-react'
 import { format, isToday } from 'date-fns'
 import useWeeklyPlan from '@/hooks/useWeeklyPlan'
-import type { PlannedEntry } from '@/hooks/useWeeklyPlan'
+import type { PlannedEntry, Session } from '@/hooks/useWeeklyPlan'
+import { SESSIONS, SESSION_LABELS } from '@/hooks/useWeeklyPlan'
 import type { Exercise } from '@/types/database'
 import { getExerciseColorClasses, formatReps, formatWeightWithConversion } from '@/types/common'
-import type { RepType, WeightUnit } from '@/types/common'
 import { useAuth } from '@/contexts/AuthContext'
 import { cn } from '@/lib/utils'
 import EntryDetailEditor from './EntryDetailEditor'
+
+const SESSION_ICONS: Record<Session, typeof Sun> = {
+  morning: Sun,
+  noon: CloudSun,
+  night: Moon,
+}
 
 interface ProgramWeekGridProps {
   weekOffset: number
@@ -17,7 +23,7 @@ interface ProgramWeekGridProps {
   exercises: Exercise[]
   onSaveDay?: (name: string, entries: PlannedEntry[]) => void
   /** Called when a template is dropped; parent resolves template exercises and calls addEntry */
-  onTemplateDrop?: (dateKey: string, templateId: string) => void
+  onTemplateDrop?: (dateKey: string, templateId: string, session: Session) => void
   /** Bump to trigger refetch (e.g. after external paste) */
   revision?: number
 }
@@ -37,6 +43,7 @@ export default function ProgramWeekGrid({
     days,
     dateKeys,
     getEntriesForDate,
+    getEntriesForDateSession,
     addEntry,
     updateEntry,
     removeEntry,
@@ -52,43 +59,90 @@ export default function ProgramWeekGrid({
   useEffect(() => { refetch() }, [revision])
 
   // Drag state
-  const [dropTarget, setDropTarget] = useState<string | null>(null)
+  const [dropTarget, setDropTarget] = useState<{ dateKey: string; session: Session } | null>(null)
   const [reorderOverId, setReorderOverId] = useState<string | null>(null)
   const [draggingEntryId, setDraggingEntryId] = useState<string | null>(null)
   // Editing state
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
 
+  // Collapse state for sessions
+  const [manualCollapsed, setManualCollapsed] = useState<Set<string>>(new Set())
+  const [manualExpanded, setManualExpanded] = useState<Set<string>>(new Set())
+
+  function isSessionCollapsed(dateKey: string, session: Session, isEmpty: boolean) {
+    const key = `${dateKey}-${session}`
+    if (isEmpty) return !manualExpanded.has(key)
+    return manualCollapsed.has(key)
+  }
+
+  function toggleSession(dateKey: string, session: Session, isEmpty: boolean) {
+    const key = `${dateKey}-${session}`
+    if (isEmpty) {
+      setManualExpanded((prev) => {
+        const next = new Set(prev)
+        if (next.has(key)) next.delete(key)
+        else next.add(key)
+        return next
+      })
+    } else {
+      setManualCollapsed((prev) => {
+        const next = new Set(prev)
+        if (next.has(key)) next.delete(key)
+        else next.add(key)
+        return next
+      })
+    }
+  }
+
+  function expandSession(dateKey: string, session: Session) {
+    const key = `${dateKey}-${session}`
+    setManualCollapsed((prev) => {
+      const next = new Set(prev)
+      next.delete(key)
+      return next
+    })
+    setManualExpanded((prev) => {
+      const next = new Set(prev)
+      next.add(key)
+      return next
+    })
+  }
+
   function getExercise(exerciseId: string): Exercise | undefined {
     return exercises.find((e) => e.id === exerciseId)
   }
 
-  function handleDayDragOver(e: DragEvent, dateKey: string) {
+  function handleSessionDragOver(e: DragEvent, dateKey: string, session: Session) {
     e.preventDefault()
     const isFromPool = e.dataTransfer.types.includes('application/x-pool')
     const isFromTemplate = e.dataTransfer.types.includes('application/x-template')
     e.dataTransfer.dropEffect = (isFromPool || isFromTemplate || e.ctrlKey || e.metaKey) ? 'copy' : 'move'
-    setDropTarget(dateKey)
+    setDropTarget({ dateKey, session })
   }
 
-  function handleDayDragLeave() {
+  function handleSessionDragLeave() {
     setDropTarget(null)
   }
 
-  function handleDayDrop(e: DragEvent, dateKey: string) {
+  function handleSessionDrop(e: DragEvent, dateKey: string, session: Session) {
     e.preventDefault()
+    e.stopPropagation()
     setDropTarget(null)
     setReorderOverId(null)
 
     const data = e.dataTransfer.getData('text/plain')
     if (!data) return
 
+    // Auto-expand the target section
+    expandSession(dateKey, session)
+
     if (e.dataTransfer.types.includes('application/x-template')) {
-      onTemplateDrop?.(dateKey, data)
+      onTemplateDrop?.(dateKey, data, session)
     } else if (e.dataTransfer.types.includes('application/x-pool')) {
-      addEntry(dateKey, data)
+      addEntry(dateKey, data, undefined, session)
     } else {
-      // Dropped on day container (not on a specific entry) — append at end
-      const dayEntries = getEntriesForDate(dateKey)
+      // Entry dropped on session container — append at end
+      const sessionEntries = getEntriesForDateSession(dateKey, session)
       if (e.ctrlKey || e.metaKey) {
         const allEntries = dateKeys.flatMap((dk) => getEntriesForDate(dk))
         const source = allEntries.find((en) => en.id === data)
@@ -100,10 +154,10 @@ export default function ProgramWeekGrid({
             reps_right: source.reps_right,
             weight: source.weight,
             weight_unit: source.weight_unit,
-          })
+          }, session)
         }
       } else {
-        moveEntry(data, dateKey, dayEntries.length)
+        moveEntry(data, dateKey, sessionEntries.length, session)
       }
       setDraggingEntryId(null)
     }
@@ -128,7 +182,7 @@ export default function ProgramWeekGrid({
     setReorderOverId(entryId)
   }
 
-  function handleEntryDrop(e: DragEvent, dateKey: string, targetIdx: number) {
+  function handleEntryDrop(e: DragEvent, dateKey: string, targetIdx: number, session: Session) {
     if (!draggingEntryId) return
     e.preventDefault()
     e.stopPropagation()
@@ -146,10 +200,10 @@ export default function ProgramWeekGrid({
           reps_right: source.reps_right,
           weight: source.weight,
           weight_unit: source.weight_unit,
-        })
+        }, session)
       }
     } else {
-      moveEntry(draggingEntryId, dateKey, targetIdx)
+      moveEntry(draggingEntryId, dateKey, targetIdx, session)
     }
     setDraggingEntryId(null)
   }
@@ -168,19 +222,14 @@ export default function ProgramWeekGrid({
       {days.map((day, i) => {
         const dateKey = dateKeys[i]
         const today = isToday(day)
-        const planned = getEntriesForDate(dateKey)
-        const isOver = dropTarget === dateKey
+        const allPlanned = getEntriesForDate(dateKey)
 
         return (
           <div
             key={dateKey}
-            onDragOver={(e) => handleDayDragOver(e, dateKey)}
-            onDragLeave={handleDayDragLeave}
-            onDrop={(e) => handleDayDrop(e, dateKey)}
             className={cn(
               'flex flex-col rounded-xl border-2 border-dashed transition-colors',
               today ? 'border-primary-300 bg-primary-50/20' : 'border-surface-200 bg-white',
-              isOver && 'border-primary-400 bg-primary-50/40',
             )}
           >
             <div
@@ -202,7 +251,7 @@ export default function ProgramWeekGrid({
                   {format(day, 'M/d')}
                 </span>
               </div>
-              {planned.length > 0 && (
+              {allPlanned.length > 0 && (
                 <div className="flex gap-0.5">
                   {onSaveDay && (
                     <button
@@ -226,82 +275,133 @@ export default function ProgramWeekGrid({
               )}
             </div>
 
-            <div className="flex flex-col gap-1 p-1.5">
-              {planned.map((entry, idx) => {
-                const ex = getExercise(entry.exercise_id)
-                const entryColor = getExerciseColorClasses(ex?.color ?? null)
-                const repsDisplay = formatReps(entry.rep_type, entry.reps, entry.reps_right)
+            {/* Session sections */}
+            <div className="flex flex-col">
+              {SESSIONS.map((session, sIdx) => {
+                const sessionEntries = getEntriesForDateSession(dateKey, session)
+                const isEmpty = sessionEntries.length === 0
+                const collapsed = isSessionCollapsed(dateKey, session, isEmpty)
+                const isOver = dropTarget?.dateKey === dateKey && dropTarget?.session === session
+                const Icon = SESSION_ICONS[session]
+
                 return (
-                  <div
-                    key={entry.id}
-                    className="relative"
-                    onDragOver={(e) => handleEntryDragOver(e, entry.id)}
-                    onDrop={(e) => handleEntryDrop(e, dateKey, idx)}
-                  >
-                    {reorderOverId === entry.id && draggingEntryId && draggingEntryId !== entry.id && (
-                      <div className="absolute -top-1 left-0 right-0 h-0.5 rounded bg-primary-500" />
-                    )}
-                    <div
-                      draggable
-                      onDragStart={(e) => handleEntryDragStart(e, entry.id)}
-                      onDragEnd={handleEntryDragEnd}
-                      onClick={() => setEditingEntryId(editingEntryId === entry.id ? null : entry.id)}
-                      title={[ex?.name, entry.notes].filter(Boolean).join('\n') || undefined}
-                      className={cn(
-                        'group flex items-start gap-1 rounded-lg border p-1.5 text-[11px] shadow-sm cursor-pointer transition-opacity',
-                        ex?.color ? `${entryColor.bg} ${entryColor.border}` : 'border-surface-200 bg-white',
-                        draggingEntryId === entry.id && 'opacity-30',
-                      )}
+                  <div key={session} className={cn(sIdx > 0 && 'border-t border-surface-100')}>
+                    {/* Section header */}
+                    <button
+                      type="button"
+                      onClick={() => toggleSession(dateKey, session, isEmpty)}
+                      className="flex w-full items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-surface-400 hover:text-surface-600 transition-colors"
                     >
-                      <div className="min-w-0 flex-1">
-                        <p className={cn('truncate font-medium', ex?.color ? entryColor.text : 'text-surface-800')}>
-                          {ex?.name ?? 'Unknown'}
-                        </p>
-                        <div className="mt-0.5 space-y-0 text-[10px] text-surface-500">
-                          {entry.intensity && (
-                            <span className={`inline-block rounded-full px-1.5 py-0 text-[9px] font-semibold uppercase ${
-                              entry.intensity === 'light'
-                                ? 'bg-info-500/10 text-info-600'
-                                : 'bg-danger-500/10 text-danger-600'
-                            }`}>
-                              {entry.intensity}
-                            </span>
-                          )}
-                          {entry.sets != null && <p>Sets: {entry.sets}</p>}
-                          {repsDisplay && (
-                            <p>{entry.rep_type === 'time' ? 'Time: ' : entry.rep_type === 'reps_per_minute' ? '' : 'Reps: '}{repsDisplay}</p>
-                          )}
-                          {(entry.weight_unit === 'bodyweight' || entry.weight != null) && (
-                            <p>{formatWeightWithConversion(entry.weight, entry.weight_unit, preferredUnit)}</p>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); removeEntry(entry.id) }}
-                        className="shrink-0 rounded p-0.5 text-surface-300 opacity-0 transition-opacity hover:text-danger-500 group-hover:opacity-100"
-                        aria-label="Remove"
+                      <ChevronRight className={cn('h-2.5 w-2.5 transition-transform', !collapsed && 'rotate-90')} />
+                      <Icon className="h-2.5 w-2.5" />
+                      <span>{SESSION_LABELS[session]}</span>
+                      {sessionEntries.length > 0 && (
+                        <span className="ml-auto text-surface-300">{sessionEntries.length}</span>
+                      )}
+                    </button>
+
+                    {/* Section body */}
+                    {!collapsed && (
+                      <div
+                        onDragOver={(e) => handleSessionDragOver(e, dateKey, session)}
+                        onDragLeave={handleSessionDragLeave}
+                        onDrop={(e) => handleSessionDrop(e, dateKey, session)}
+                        className={cn(
+                          'flex flex-col gap-1 px-1.5 pb-1 min-h-[24px] transition-colors rounded-sm',
+                          isOver && 'bg-primary-50/60',
+                        )}
                       >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                    {editingEntryId === entry.id && (
-                      <EntryDetailEditor
-                        entry={entry}
-                        exerciseName={ex?.name ?? 'Unknown'}
-                        exercises={exercises}
-                        onUpdate={updateEntry}
-                        onClose={() => setEditingEntryId(null)}
+                        {sessionEntries.map((entry, idx) => {
+                          const ex = getExercise(entry.exercise_id)
+                          const entryColor = getExerciseColorClasses(ex?.color ?? null)
+                          const repsDisplay = formatReps(entry.rep_type, entry.reps, entry.reps_right)
+                          return (
+                            <div
+                              key={entry.id}
+                              className="relative"
+                              onDragOver={(e) => handleEntryDragOver(e, entry.id)}
+                              onDrop={(e) => handleEntryDrop(e, dateKey, idx, session)}
+                            >
+                              {reorderOverId === entry.id && draggingEntryId && draggingEntryId !== entry.id && (
+                                <div className="absolute -top-1 left-0 right-0 h-0.5 rounded bg-primary-500" />
+                              )}
+                              <div
+                                draggable
+                                onDragStart={(e) => handleEntryDragStart(e, entry.id)}
+                                onDragEnd={handleEntryDragEnd}
+                                onClick={() => setEditingEntryId(editingEntryId === entry.id ? null : entry.id)}
+                                title={[ex?.name, entry.notes].filter(Boolean).join('\n') || undefined}
+                                className={cn(
+                                  'group flex items-start gap-1 rounded-lg border p-1.5 text-[11px] shadow-sm cursor-pointer transition-opacity',
+                                  ex?.color ? `${entryColor.bg} ${entryColor.border}` : 'border-surface-200 bg-white',
+                                  draggingEntryId === entry.id && 'opacity-30',
+                                )}
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <p className={cn('truncate font-medium', ex?.color ? entryColor.text : 'text-surface-800')}>
+                                    {ex?.name ?? 'Unknown'}
+                                  </p>
+                                  <div className="mt-0.5 space-y-0 text-[10px] text-surface-500">
+                                    {entry.intensity && (
+                                      <span className={`inline-block rounded-full px-1.5 py-0 text-[9px] font-semibold uppercase ${
+                                        entry.intensity === 'light'
+                                          ? 'bg-info-500/10 text-info-600'
+                                          : 'bg-danger-500/10 text-danger-600'
+                                      }`}>
+                                        {entry.intensity}
+                                      </span>
+                                    )}
+                                    {entry.sets != null && <p>Sets: {entry.sets}</p>}
+                                    {repsDisplay && (
+                                      <p>{entry.rep_type === 'time' ? 'Time: ' : entry.rep_type === 'reps_per_minute' ? '' : 'Reps: '}{repsDisplay}</p>
+                                    )}
+                                    {(entry.weight_unit === 'bodyweight' || entry.weight != null) && (
+                                      <p>{formatWeightWithConversion(entry.weight, entry.weight_unit, preferredUnit)}</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); removeEntry(entry.id) }}
+                                  className="shrink-0 rounded p-0.5 text-surface-300 opacity-0 transition-opacity hover:text-danger-500 group-hover:opacity-100"
+                                  aria-label="Remove"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                              {editingEntryId === entry.id && (
+                                <EntryDetailEditor
+                                  entry={entry}
+                                  exerciseName={ex?.name ?? 'Unknown'}
+                                  exercises={exercises}
+                                  onUpdate={updateEntry}
+                                  onClose={() => setEditingEntryId(null)}
+                                />
+                              )}
+                            </div>
+                          )
+                        })}
+
+                        {isEmpty && (
+                          <span className="py-1 text-center text-[10px] text-surface-300">Drop here</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Collapsed drop zone */}
+                    {collapsed && (
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); handleSessionDragOver(e, dateKey, session) }}
+                        onDragLeave={handleSessionDragLeave}
+                        onDrop={(e) => handleSessionDrop(e, dateKey, session)}
+                        className={cn(
+                          'mx-1 h-1 rounded transition-colors',
+                          isOver && 'bg-primary-300',
+                        )}
                       />
                     )}
                   </div>
                 )
               })}
-
-              {planned.length === 0 && (
-                <div className="py-2 text-center">
-                  <span className="text-[11px] text-surface-300">Drop here</span>
-                </div>
-              )}
             </div>
           </div>
         )

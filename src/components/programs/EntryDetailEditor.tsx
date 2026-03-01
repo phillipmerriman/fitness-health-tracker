@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import type { PlannedEntry, PlannedEntryUpdate } from '@/hooks/useWeeklyPlan'
+import type { PlannedEntry, PlannedEntryUpdate, Session } from '@/hooks/useWeeklyPlan'
+import { SESSIONS, SESSION_LABELS } from '@/hooks/useWeeklyPlan'
 import type { Exercise } from '@/types/database'
 import type { RepType, WeightUnit } from '@/types/common'
 import { REP_TYPE_OPTIONS, WEIGHT_UNIT_OPTIONS } from '@/types/common'
@@ -20,6 +21,7 @@ export default function EntryDetailEditor({
   onClose,
 }: EntryDetailEditorProps) {
   const [exerciseId, setExerciseId] = useState(entry.exercise_id)
+  const [session, setSession] = useState<Session>(entry.session)
   const [sets, setSets] = useState(entry.sets ?? '')
   const [repType, setRepType] = useState<RepType>(entry.rep_type)
   const [reps, setReps] = useState(entry.reps ?? '')
@@ -57,6 +59,7 @@ export default function EntryDetailEditor({
 
     onUpdate(entry.id, {
       exercise_id: exerciseId,
+      session,
       sets: sets === '' ? null : Number(sets),
       reps: resolvedReps,
       rep_type: repType,
@@ -95,6 +98,20 @@ export default function EntryDetailEditor({
         ) : exerciseName ? (
           <p className="truncate border-b border-surface-100 pb-1.5 text-xs font-semibold text-surface-800">{exerciseName}</p>
         ) : null}
+        {/* Time of Day */}
+        <div>
+          <label className="text-[10px] font-medium text-surface-500">Time of Day</label>
+          <select
+            value={session}
+            onChange={(e) => setSession(e.target.value as Session)}
+            className={inputClass}
+          >
+            {SESSIONS.map((s) => (
+              <option key={s} value={s}>{SESSION_LABELS[s]}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Sets */}
         <div>
           <label className="text-[10px] font-medium text-surface-500">Sets</label>

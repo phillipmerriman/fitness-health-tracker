@@ -6,7 +6,7 @@ import usePrograms from '@/hooks/usePrograms'
 import useExercises from '@/hooks/useExercises'
 import useWorkoutTemplates from '@/hooks/useWorkoutTemplates'
 import useWeeklyPlan, { loadWeekEntries, clearWeekEntries, pasteWeekEntries } from '@/hooks/useWeeklyPlan'
-import type { PlannedEntry } from '@/hooks/useWeeklyPlan'
+import type { PlannedEntry, Session } from '@/hooks/useWeeklyPlan'
 import { useAuth } from '@/contexts/AuthContext'
 import type { ExerciseType, ExerciseRate, MuscleGroup, Equipment } from '@/types/common'
 import { getExerciseColorClasses } from '@/types/common'
@@ -78,7 +78,7 @@ export default function ProgramDetailPage() {
     e.dataTransfer.setData('application/x-template', 'true')
   }
 
-  function handleTemplateDrop(dateKey: string, templateId: string) {
+  function handleTemplateDrop(dateKey: string, templateId: string, session: Session) {
     const templateExercises = getExercisesForTemplate(templateId)
     for (const exercise of templateExercises) {
       const extras = parseExtras(exercise.notes)
@@ -89,7 +89,7 @@ export default function ProgramDetailPage() {
         reps_right: extras.reps_right,
         weight: exercise.target_weight,
         weight_unit: extras.weight_unit,
-      })
+      }, session)
     }
   }
 

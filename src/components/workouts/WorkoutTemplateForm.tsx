@@ -1,7 +1,7 @@
 import { useRef, useState, type DragEvent } from 'react'
 import { GripVertical, X, Search } from 'lucide-react'
 import type { Exercise } from '@/types/database'
-import type { PlannedEntry, PlannedEntryUpdate } from '@/hooks/useWeeklyPlan'
+import type { PlannedEntry, PlannedEntryUpdate, Session } from '@/hooks/useWeeklyPlan'
 import type { RepType, WeightUnit } from '@/types/common'
 import { getExerciseColorClasses, formatReps, formatWeightWithConversion } from '@/types/common'
 import { useAuth } from '@/contexts/AuthContext'
@@ -22,6 +22,7 @@ export interface TemplateFormEntry {
   weight_unit: WeightUnit
   intensity: 'light' | 'heavy' | null
   notes: string | null
+  session?: Session
 }
 
 export interface WorkoutTemplateFormInitial {
@@ -219,6 +220,7 @@ export default function WorkoutTemplateForm({
       user_id: '',
       program_id: null,
       date: '',
+      session: entry.session ?? 'morning',
     }
   }
 
