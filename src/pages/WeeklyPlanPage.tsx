@@ -484,7 +484,7 @@ export default function WeeklyPlanPage() {
                                     )}
                                   >
                                     <div className="min-w-0 flex-1">
-                                      <p className={cn('truncate font-medium', ex?.color ? entryColor.text : 'text-surface-800')}>
+                                      <p className={cn('font-display truncate font-medium', ex?.color ? entryColor.text : 'text-surface-800')}>
                                         {getExerciseName(entry.exercise_id)}
                                       </p>
                                       <div className="mt-0.5 space-y-0 text-[10px] text-surface-500">
@@ -608,7 +608,7 @@ export default function WeeklyPlanPage() {
                           exercise.color ? `${poolColor.bg} ${poolColor.border}` : 'border-surface-200 bg-surface-50',
                         )}
                       >
-                        <p className={cn('text-xs font-medium truncate', exercise.color ? poolColor.text : 'text-surface-800')}>
+                        <p className={cn('font-display text-xs font-medium truncate', exercise.color ? poolColor.text : 'text-surface-800')}>
                           {exercise.name}
                         </p>
                         <div className="mt-0.5 flex gap-1">
@@ -647,7 +647,7 @@ export default function WeeklyPlanPage() {
                         className="group flex items-center gap-1 rounded-lg border border-surface-200 bg-surface-50 px-2.5 py-1.5 cursor-grab active:cursor-grabbing hover:border-primary-300 transition-colors"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium truncate text-surface-800">
+                          <p className="font-display text-xs font-medium truncate text-surface-800">
                             {tmpl.name}
                           </p>
                           <p className="text-[10px] text-surface-400">

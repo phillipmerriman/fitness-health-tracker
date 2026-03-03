@@ -29,7 +29,7 @@ export default function ExerciseCard({
   return (
     <Card className={cn('flex items-start justify-between gap-3', colorClasses.bg)}>
       <div className="min-w-0 flex-1">
-        <p className="font-medium text-surface-900">{exercise.name}</p>
+        <p className="font-display font-medium text-surface-900">{exercise.name}</p>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           <Badge variant="primary">{formatLabel(exercise.exercise_type)}</Badge>
           <Badge>{formatLabel(exercise.primary_muscle)}</Badge>

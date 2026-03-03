@@ -257,7 +257,7 @@ export default function ProgramDetailPage() {
                           exercise.color ? `${poolColor.bg} ${poolColor.border}` : 'border-surface-200 bg-surface-50',
                         )}
                       >
-                        <p className={cn('text-xs font-medium truncate', exercise.color ? poolColor.text : 'text-surface-800')}>
+                        <p className={cn('font-display text-xs font-medium truncate', exercise.color ? poolColor.text : 'text-surface-800')}>
                           {exercise.name}
                         </p>
                       </div>

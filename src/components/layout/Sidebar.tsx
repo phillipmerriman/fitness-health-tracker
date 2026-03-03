@@ -27,7 +27,7 @@ export default function Sidebar() {
     <aside className="hidden md:flex md:w-56 md:flex-col md:border-r md:border-surface-200 md:bg-white">
       <div className="flex h-14 items-center gap-2 border-b border-surface-200 px-4">
         <Dumbbell className="h-6 w-6 text-primary-600" />
-        <span className="text-lg font-bold text-surface-900">FitTrack</span>
+        <span className="font-display text-lg font-bold text-surface-900">FitTrack</span>
       </div>
 
       <nav className="flex-1 space-y-1 px-2 py-3">
@@ -38,7 +38,7 @@ export default function Sidebar() {
             end={to === '/'}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'font-display flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-primary-50 text-primary-700'
                   : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900',

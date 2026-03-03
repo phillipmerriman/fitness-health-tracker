@@ -29,7 +29,7 @@ export default function ExerciseBlock({
   return (
     <div className="rounded-xl border border-surface-200 bg-white">
       <div className="border-b border-surface-100 px-4 py-2.5">
-        <p className="font-medium text-surface-900">{exercise.name}</p>
+        <p className="font-display font-medium text-surface-900">{exercise.name}</p>
         <div className="mt-1 flex gap-1.5">
           <Badge variant="primary">{formatLabel(exercise.exercise_type)}</Badge>
           <Badge>{formatLabel(exercise.primary_muscle)}</Badge>

@@ -47,7 +47,7 @@ export default function WorkoutTemplateCard({
         </button>
       </div>
       <div>
-        <p className="pr-16 font-medium text-surface-900">{template.name}</p>
+        <p className="font-display pr-16 font-medium text-surface-900">{template.name}</p>
         {template.description && (
           <p className="mt-0.5 text-xs text-surface-500">{template.description}</p>
         )}
@@ -69,7 +69,7 @@ export default function WorkoutTemplateCard({
                 <p key={te.id} className="flex items-center gap-1.5 text-xs text-surface-600">
                   {color.dot && <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${color.dot}`} />}
                   <span>
-                    <u>{ex?.name ?? 'Unknown'}</u>
+                    <u className="font-display">{ex?.name ?? 'Unknown'}</u>
                     {te.target_sets != null && ` — ${te.target_sets > 1 ? `${te.target_sets} sets` : '1 set'}`}
                     {repsDisplay && ` × ${repsDisplay}`}
                     {extras.weight_unit === 'bodyweight'
