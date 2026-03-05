@@ -357,15 +357,12 @@ export default function WeeklyCalendar({ sessions, activeProgram, onUpdateSessio
                       .filter((g) => g.entries.length > 0)
                     return sessionGroups.map((group, gi) => (
                       <div key={group.session}>
-                        {gi > 0 && (
-                          <div className="my-2 flex items-center gap-2">
+                        {sessionGroups.length > 1 && (
+                          <div className={cn('flex items-center gap-2', gi > 0 ? 'my-2' : 'mb-2')}>
                             <div className="h-px flex-1 bg-surface-200" />
                             <span className="text-[10px] font-medium text-surface-400">{SESSION_LABELS[group.session]}</span>
                             <div className="h-px flex-1 bg-surface-200" />
                           </div>
-                        )}
-                        {sessionGroups.length > 1 && gi === 0 && (
-                          <div className="mb-1 text-[10px] font-medium text-surface-400">{SESSION_LABELS[group.session]}</div>
                         )}
                         {group.entries.map((entry) => {
                           const ex = getExercise(entry.exercise_id)
