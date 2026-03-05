@@ -128,11 +128,8 @@ export default function WeeklyCalendar({ sessions, activeProgram, onUpdateSessio
     return total
   }, [days, dateKeys, sessions, getEntriesForDate, preferredUnit])
 
-  const isWithinProgram = activeProgram && currentWeekOffset >= 0 && currentWeekOffset < activeProgram.weeks
   const dashWeekParam = weekDelta !== 0 ? `&dashweek=${weekDelta}` : ''
-  const planLink = isWithinProgram
-    ? `/plan/${activeProgram.id}?from=dashboard&week=${currentWeekOffset}${dashWeekParam}`
-    : `/plan?from=dashboard${dashWeekParam}`
+  const planLink = `/plan?from=dashboard${dashWeekParam}`
 
   return (
     <div>

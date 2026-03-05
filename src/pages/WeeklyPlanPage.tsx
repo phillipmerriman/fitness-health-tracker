@@ -336,7 +336,7 @@ export default function WeeklyPlanPage() {
       </div>
 
       {/* Week navigation */}
-      {program && totalWeeks > 1 && (
+      {program && totalWeeks > 1 ? (
         <div className="flex items-center gap-3">
           <Button
             size="sm"
@@ -360,6 +360,36 @@ export default function WeeklyPlanPage() {
           <span className="text-xs text-surface-400">
             {format(days[0], 'MMM d')} – {format(days[6], 'MMM d, yyyy')}
           </span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setWeekOffset((w) => w - 1)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm font-semibold text-surface-700">
+            {format(days[0], 'MMM d')} – {format(days[6], 'MMM d, yyyy')}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setWeekOffset((w) => w + 1)}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          {weekOffset !== 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setWeekOffset(0)}
+              className="text-xs"
+            >
+              Today
+            </Button>
+          )}
         </div>
       )}
 
