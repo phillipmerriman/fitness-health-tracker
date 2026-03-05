@@ -144,6 +144,7 @@ export interface Database {
           started_at: string
           completed_at: string | null
           duration_sec: number | null
+          total_weight_moved: string | null
           notes: string | null
           created_at: string
         }
@@ -155,6 +156,7 @@ export interface Database {
           started_at?: string
           completed_at?: string | null
           duration_sec?: number | null
+          total_weight_moved?: string | null
           notes?: string | null
           created_at?: string
         }
@@ -164,6 +166,7 @@ export interface Database {
           started_at?: string
           completed_at?: string | null
           duration_sec?: number | null
+          total_weight_moved?: string | null
           notes?: string | null
         }
       }

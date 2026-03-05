@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Plus, CheckCircle } from 'lucide-react'
 import useWorkouts, { useWorkoutSets } from '@/hooks/useWorkouts'
 import useExercises from '@/hooks/useExercises'
+import { useAuth } from '@/contexts/AuthContext'
 import type { Exercise } from '@/types/database'
 import ExerciseBlock from '@/components/logging/ExerciseBlock'
 import Button from '@/components/ui/Button'
@@ -17,6 +18,8 @@ export default function WorkoutSessionPage() {
   const { sessions, update: updateSession } = useWorkouts()
   const { sets, addSet, updateSet, removeSet, loading: setsLoading } = useWorkoutSets(id!)
   const { exercises } = useExercises()
+  const { profile } = useAuth()
+  const preferredUnit = profile?.preferred_weight_unit ?? 'lbs'
 
   const session = sessions.find((s) => s.id === id)
   const isComplete = !!session?.completed_at
@@ -83,9 +86,14 @@ export default function WorkoutSessionPage() {
 
   async function handleFinish() {
     if (!session) return
+    // Compute total weight moved from logged sets (reps × weight per working set)
+    const totalWeight = sets
+      .filter((s) => !s.is_warmup)
+      .reduce((sum, s) => sum + (s.reps ?? 0) * (s.weight ?? 0), 0)
     await updateSession(session.id, {
       completed_at: new Date().toISOString(),
       duration_sec: elapsed,
+      total_weight_moved: totalWeight > 0 ? `${Math.round(totalWeight).toLocaleString()} ${preferredUnit}` : null,
     })
     navigate('/workouts')
   }

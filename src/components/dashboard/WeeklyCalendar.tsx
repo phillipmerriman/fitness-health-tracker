@@ -1,19 +1,29 @@
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { format, isToday, isSameDay, differenceInWeeks, parseISO, startOfWeek } from 'date-fns'
-import { ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
+import { format, isToday, isSameDay, isFuture, differenceInWeeks, parseISO, startOfWeek } from 'date-fns'
+import { ChevronLeft, ChevronRight, Pencil, Check, Undo2, Trash2 } from 'lucide-react'
 import useWeeklyPlan from '@/hooks/useWeeklyPlan'
 import useExercises from '@/hooks/useExercises'
-import type { Program, WorkoutSession } from '@/types/database'
+import type { Program, WorkoutSession, UpdateDto, InsertDto } from '@/types/database'
 import { cn } from '@/lib/utils'
-import { getExerciseColorClasses } from '@/types/common'
+import { getExerciseColorClasses, calcEntryVolume, formatReps, formatWeightWithConversion } from '@/types/common'
+import { useAuth } from '@/contexts/AuthContext'
+import Modal from '@/components/ui/Modal'
+import Badge from '@/components/ui/Badge'
+import Button from '@/components/ui/Button'
 
 interface WeeklyCalendarProps {
   sessions: WorkoutSession[]
   activeProgram?: Program | null
+  onUpdateSession?: (id: string, values: UpdateDto<'workout_sessions'>) => Promise<unknown>
+  onCreateSession?: (values: Omit<InsertDto<'workout_sessions'>, 'user_id'>) => Promise<unknown>
+  onDeleteSession?: (id: string) => Promise<unknown>
 }
 
-export default function WeeklyCalendar({ sessions, activeProgram }: WeeklyCalendarProps) {
+export default function WeeklyCalendar({ sessions, activeProgram, onUpdateSession, onCreateSession, onDeleteSession }: WeeklyCalendarProps) {
+  const { profile } = useAuth()
+  const preferredUnit = profile?.preferred_weight_unit ?? 'lbs'
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const programStart = activeProgram?.start_date ? parseISO(activeProgram.start_date) : undefined
 
   // Figure out which week offset we're in relative to the program start
@@ -62,6 +72,61 @@ export default function WeeklyCalendar({ sessions, activeProgram }: WeeklyCalend
     if (inProgress) return 'in_progress'
     return 'none'
   }
+
+  function getSessionsForDay(day: Date) {
+    return sessions.filter((s) => isSameDay(new Date(s.started_at), day))
+  }
+
+  function getExerciseName(exerciseId: string) {
+    return exercises.find((e) => e.id === exerciseId)?.name ?? 'Unknown'
+  }
+
+  async function handleToggleComplete(session: WorkoutSession) {
+    if (!onUpdateSession) return
+    if (session.completed_at) {
+      await onUpdateSession(session.id, { completed_at: null })
+    } else {
+      await onUpdateSession(session.id, { completed_at: new Date().toISOString() })
+    }
+  }
+
+  async function handleMarkDayComplete(day: Date) {
+    if (!onCreateSession) return
+    const dateKey = format(day, 'yyyy-MM-dd')
+    const planned = getEntriesForDate(dateKey)
+    const names = planned.map((e) => getExerciseName(e.exercise_id))
+    const sessionName = names.length > 0 ? names.join(', ') : 'Workout'
+    const dayStr = format(day, 'yyyy-MM-dd')
+    const totalWeight = planned.reduce((sum, entry) =>
+      sum + calcEntryVolume(entry.sets, entry.reps, entry.rep_type, entry.reps_right, entry.weight, entry.weight_unit, preferredUnit), 0)
+    await onCreateSession({
+      name: sessionName,
+      started_at: `${dayStr}T09:00:00.000Z`,
+      completed_at: `${dayStr}T10:00:00.000Z`,
+      total_weight_moved: totalWeight > 0 ? `${totalWeight.toLocaleString()} ${preferredUnit}` : null,
+    })
+  }
+
+  const daySessions = selectedDay ? getSessionsForDay(selectedDay) : []
+  const dayPlanned = selectedDay ? getEntriesForDate(format(selectedDay, 'yyyy-MM-dd')) : []
+  const isFutureDay = selectedDay ? isFuture(selectedDay) : false
+  const dayCompleted = selectedDay ? dayStatus(selectedDay) === 'completed' : false
+
+  // Compute weekly total volume across completed days from planned entries
+  const weekTotal = useMemo(() => {
+    let total = 0
+    days.forEach((day, i) => {
+      const isCompleted = sessions.some(
+        (s) => isSameDay(new Date(s.started_at), day) && s.completed_at,
+      )
+      if (!isCompleted) return
+      const planned = getEntriesForDate(dateKeys[i])
+      for (const entry of planned) {
+        total += calcEntryVolume(entry.sets, entry.reps, entry.rep_type, entry.reps_right, entry.weight, entry.weight_unit, preferredUnit)
+      }
+    })
+    return total
+  }, [days, dateKeys, sessions, getEntriesForDate, preferredUnit])
 
   const isWithinProgram = activeProgram && currentWeekOffset >= 0 && currentWeekOffset < activeProgram.weeks
   const dashWeekParam = weekDelta !== 0 ? `&dashweek=${weekDelta}` : ''
@@ -123,8 +188,9 @@ export default function WeeklyCalendar({ sessions, activeProgram }: WeeklyCalend
           return (
             <div
               key={dateKey}
+              onClick={() => setSelectedDay(day)}
               className={cn(
-                'flex min-h-[80px] flex-col rounded-lg border p-1.5',
+                'flex min-h-[80px] cursor-pointer flex-col rounded-lg border p-1.5 transition-colors hover:border-primary-300',
                 today ? 'border-primary-300 bg-primary-50/30' : 'border-surface-200',
                 status === 'completed' && 'border-primary-400 bg-primary-50/50',
               )}
@@ -155,6 +221,9 @@ export default function WeeklyCalendar({ sessions, activeProgram }: WeeklyCalend
                 {planned.map((entry) => {
                   const ex = getExercise(entry.exercise_id)
                   const color = getExerciseColorClasses(ex?.color ?? null)
+                  const vol = status === 'completed'
+                    ? calcEntryVolume(entry.sets, entry.reps, entry.rep_type, entry.reps_right, entry.weight, entry.weight_unit, preferredUnit)
+                    : 0
                   return (
                     <div
                       key={entry.id}
@@ -165,10 +234,23 @@ export default function WeeklyCalendar({ sessions, activeProgram }: WeeklyCalend
                       title={ex?.name ?? 'Unknown'}
                     >
                       {ex?.name ?? 'Unknown'}
+                      {vol > 0 && (
+                        <span className="ml-0.5 opacity-60">{vol.toLocaleString()}</span>
+                      )}
                     </div>
                   )
                 })}
               </div>
+
+              {status === 'completed' && (() => {
+                const dayTotal = planned.reduce((sum, entry) =>
+                  sum + calcEntryVolume(entry.sets, entry.reps, entry.rep_type, entry.reps_right, entry.weight, entry.weight_unit, preferredUnit), 0)
+                return dayTotal > 0 ? (
+                  <div className="mt-auto pt-1 text-center text-[9px] font-semibold text-primary-600">
+                    {dayTotal.toLocaleString()} {preferredUnit}
+                  </div>
+                ) : null
+              })()}
 
               {planned.length === 0 && (
                 <div className="flex flex-1 items-center justify-center">
@@ -179,6 +261,158 @@ export default function WeeklyCalendar({ sessions, activeProgram }: WeeklyCalend
           )
         })}
       </div>
+
+      {weekTotal > 0 && (
+        <div className="mt-2 rounded-lg bg-primary-50 px-3 py-1.5 text-center">
+          <span className="font-display text-xs font-bold text-primary-700">
+            Total Weight Moved: {weekTotal.toLocaleString()} {preferredUnit}
+          </span>
+        </div>
+      )}
+
+      {/* Day detail modal */}
+      <Modal
+        open={!!selectedDay}
+        onClose={() => setSelectedDay(null)}
+        title={selectedDay ? format(selectedDay, 'EEEE, MMM d') : ''}
+      >
+        {daySessions.length === 0 && dayPlanned.length === 0 ? (
+          <p className="py-4 text-center text-sm text-surface-400">No workouts on this day</p>
+        ) : (
+          <div className="space-y-4">
+            {daySessions.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-surface-500">Workouts</h4>
+                {daySessions.map((session) => (
+                  <div
+                    key={session.id}
+                    className="flex items-center justify-between rounded-lg border border-surface-200 p-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-surface-900">{session.name}</p>
+                      <p className="mt-0.5 text-xs text-surface-400">
+                        Started {format(new Date(session.started_at), 'h:mm a')}
+                        {session.completed_at && (
+                          <> — Completed {format(new Date(session.completed_at), 'h:mm a')}</>
+                        )}
+                      </p>
+                      {session.total_weight_moved && (
+                        <p className="mt-0.5 text-xs font-semibold text-primary-600">
+                          {session.total_weight_moved} moved
+                        </p>
+                      )}
+                    </div>
+                    <div className="ml-3 flex items-center gap-2">
+                      <Badge variant={session.completed_at ? 'primary' : 'warning'}>
+                        {session.completed_at ? 'Completed' : 'In Progress'}
+                      </Badge>
+                      {onUpdateSession && (session.completed_at || !isFutureDay) && (
+                        <Button
+                          size="sm"
+                          variant={session.completed_at ? 'ghost' : 'primary'}
+                          onClick={() => handleToggleComplete(session)}
+                        >
+                          {session.completed_at ? (
+                            <><Undo2 className="h-3.5 w-3.5" /> Undo</>
+                          ) : (
+                            <><Check className="h-3.5 w-3.5" /> Complete</>
+                          )}
+                        </Button>
+                      )}
+                      {onDeleteSession && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onDeleteSession(session.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-danger-500" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {dayPlanned.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-surface-500">Planned</h4>
+                <div className="space-y-1">
+                  {dayPlanned.map((entry) => {
+                    const ex = getExercise(entry.exercise_id)
+                    const color = getExerciseColorClasses(ex?.color ?? null)
+                    const repsDisplay = formatReps(entry.rep_type, entry.reps, entry.reps_right)
+                    const vol = dayCompleted
+                      ? calcEntryVolume(entry.sets, entry.reps, entry.rep_type, entry.reps_right, entry.weight, entry.weight_unit, preferredUnit)
+                      : 0
+                    return (
+                      <div
+                        key={entry.id}
+                        className={cn(
+                          'rounded-lg border p-2 text-sm',
+                          ex?.color ? `${color.bg} ${color.border}` : 'border-surface-200 bg-surface-50',
+                        )}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <p className={cn('font-medium', ex?.color ? color.text : 'text-surface-800')}>
+                            {getExerciseName(entry.exercise_id)}
+                          </p>
+                          {entry.intensity && (
+                            <span className={cn(
+                              'rounded-full px-1.5 py-0 text-[9px] font-semibold uppercase',
+                              entry.intensity === 'light'
+                                ? 'bg-info-500/10 text-info-600'
+                                : 'bg-danger-500/10 text-danger-600',
+                            )}>
+                              {entry.intensity}
+                            </span>
+                          )}
+                          {vol > 0 && (
+                            <span className="ml-auto text-xs font-semibold text-primary-600">
+                              {vol.toLocaleString()} {preferredUnit}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-xs text-surface-500">
+                          {[
+                            entry.sets != null && `${entry.sets} ${entry.sets === 1 ? 'set' : 'sets'}`,
+                            repsDisplay && `${repsDisplay}`,
+                            entry.weight_unit === 'bodyweight'
+                              ? 'BW'
+                              : entry.weight != null
+                                ? formatWeightWithConversion(entry.weight, entry.weight_unit, preferredUnit)
+                                : null,
+                          ].filter(Boolean).join(' × ')}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+                {dayCompleted && (() => {
+                  const dayTotal = dayPlanned.reduce((sum, entry) =>
+                    sum + calcEntryVolume(entry.sets, entry.reps, entry.rep_type, entry.reps_right, entry.weight, entry.weight_unit, preferredUnit), 0)
+                  return dayTotal > 0 ? (
+                    <div className="mt-2 rounded-lg bg-primary-50 px-3 py-2 text-center">
+                      <span className="font-display text-sm font-bold text-primary-700">
+                        Total Weight Moved: {dayTotal.toLocaleString()} {preferredUnit}
+                      </span>
+                    </div>
+                  ) : null
+                })()}
+                {onCreateSession && selectedDay && !getSessionsForDay(selectedDay).length && !isFutureDay && (
+                  <Button
+                    size="sm"
+                    onClick={() => handleMarkDayComplete(selectedDay)}
+                    className="mt-2 w-full"
+                  >
+                    <Check className="h-3.5 w-3.5" /> Mark Day Complete
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

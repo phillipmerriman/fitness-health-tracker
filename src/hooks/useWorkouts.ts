@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
+import { format } from 'date-fns'
 import { supabase, isDev } from '@/lib/supabase'
 import { localDb } from '@/lib/local-storage'
 import { useAuth } from '@/contexts/AuthContext'
+import { calcEntryVolume } from '@/types/common'
+import { loadUserEntries } from '@/hooks/useWeeklyPlan'
 import type { WorkoutSession, WorkoutSet, InsertDto, UpdateDto } from '@/types/database'
 
 const sortByDate = (a: WorkoutSession, b: WorkoutSession) =>
@@ -16,7 +19,26 @@ export default function useWorkouts() {
     if (!user) return
     setLoading(true)
     if (isDev) {
-      const all = localDb.getAll('workout_sessions').filter((s) => s.user_id === user.id)
+      const all = localDb.getAll('workout_sessions').filter((s) => s.user_id === user.id) as WorkoutSession[]
+      // Migrate: backfill total_weight_moved for completed sessions missing it
+      const needsMigration = all.filter((s) => s.completed_at && (s.total_weight_moved == null || typeof s.total_weight_moved === 'number'))
+      if (needsMigration.length > 0) {
+        const planned = loadUserEntries(user.id, null)
+        const preferredUnit = 'lbs'
+        for (const s of needsMigration) {
+          if (typeof s.total_weight_moved === 'number') {
+            // Migrate old numeric value to string
+            s.total_weight_moved = `${(s.total_weight_moved as number).toLocaleString()} ${preferredUnit}`
+          } else {
+            const dateKey = format(new Date(s.started_at), 'yyyy-MM-dd')
+            const dayEntries = planned.filter((e) => e.date === dateKey)
+            const total = dayEntries.reduce((sum, e) =>
+              sum + calcEntryVolume(e.sets, e.reps, e.rep_type, e.reps_right, e.weight, e.weight_unit, preferredUnit), 0)
+            s.total_weight_moved = total > 0 ? `${total.toLocaleString()} ${preferredUnit}` : null
+          }
+          localDb.update('workout_sessions', s.id, { total_weight_moved: s.total_weight_moved } as never)
+        }
+      }
       setSessions(all.sort(sortByDate))
     } else {
       const { data } = await supabase
@@ -43,6 +65,7 @@ export default function useWorkouts() {
         started_at: values.started_at ?? now,
         completed_at: values.completed_at ?? null,
         duration_sec: values.duration_sec ?? null,
+        total_weight_moved: values.total_weight_moved ?? null,
         notes: values.notes ?? null,
         created_at: now,
       }

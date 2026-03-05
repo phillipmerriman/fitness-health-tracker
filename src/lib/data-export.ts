@@ -27,16 +27,17 @@ export interface CategoryInfo {
   key: CategoryKey
   label: string
   abbrev: string
+  description: string
 }
 
 export const CATEGORIES: CategoryInfo[] = [
-  { key: 'exercises', label: 'Exercises', abbrev: 'ex' },
-  { key: 'workout_templates', label: 'Workout Templates', abbrev: 'wt' },
-  { key: 'workout_sessions', label: 'Workout Sessions', abbrev: 'ws' },
-  { key: 'programs', label: 'Programs', abbrev: 'pg' },
-  { key: 'weekly_plans', label: 'Weekly Plans', abbrev: 'wp' },
-  { key: 'personal_records', label: 'Personal Records', abbrev: 'pr' },
-  { key: 'body_measurements', label: 'Body Measurements', abbrev: 'bm' },
+  { key: 'exercises', label: 'Exercises', abbrev: 'ex', description: 'Custom exercises with name, muscle group, equipment, and color' },
+  { key: 'workout_templates', label: 'Workout Templates', abbrev: 'wt', description: 'Saved workout templates and their exercise lists' },
+  { key: 'workout_sessions', label: 'Workout Sessions', abbrev: 'ws', description: 'Logged workouts with dates, duration, total weight moved, and recorded sets' },
+  { key: 'programs', label: 'Programs', abbrev: 'pg', description: 'Training programs with day schedules and exercise assignments' },
+  { key: 'weekly_plans', label: 'Weekly Plans', abbrev: 'wp', description: 'Planned exercises per day with sets, reps, weight, and intensity' },
+  { key: 'personal_records', label: 'Personal Records', abbrev: 'pr', description: 'PR entries with exercise, weight, reps, and date achieved' },
+  { key: 'body_measurements', label: 'Body Measurements', abbrev: 'bm', description: 'Body weight, body fat, and other measurements over time' },
 ]
 
 export interface ExportData {

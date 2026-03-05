@@ -126,6 +126,55 @@ export function formatReps(repType: RepType, reps: number | null, repsRight?: nu
   }
 }
 
+/** Calculate total reps for an entry, accounting for rep type (ladders, left/right, etc.) */
+export function calcTotalReps(
+  sets: number | null,
+  reps: number | null,
+  repType: RepType,
+  repsRight: number | null,
+): number {
+  if (sets == null || reps == null) return 0
+  if (repType === 'time') return 0
+
+  switch (repType) {
+    case 'reverse_ladder':
+      // n + (n-1) + ... + 1 = n*(n+1)/2
+      return sets * (reps * (reps + 1)) / 2
+    case 'ladder':
+      // 1+2+...+n+(n-1)+...+1 = n²
+      return sets * reps * reps
+    case 'double_reverse_ladder':
+      // Both sides: 2 × n*(n+1)/2
+      return sets * reps * (reps + 1)
+    case 'double_ladder':
+      // Both sides of ladder: 2 × n²
+      return sets * 2 * reps * reps
+    case 'left_right':
+      return sets * (reps + (repsRight ?? reps))
+    case 'reps_per_minute':
+      return sets * reps * (repsRight ?? 1)
+    default:
+      return sets * reps
+  }
+}
+
+/** Calculate total weight moved (volume) for a planned entry, in the preferred unit. */
+export function calcEntryVolume(
+  sets: number | null,
+  reps: number | null,
+  repType: RepType,
+  repsRight: number | null,
+  weight: number | null,
+  weightUnit: WeightUnit,
+  preferredUnit: WeightUnit,
+): number {
+  if (weight == null || weightUnit === 'bodyweight') return 0
+  const totalReps = calcTotalReps(sets, reps, repType, repsRight)
+  if (totalReps === 0) return 0
+  const normalizedWeight = convertWeight(weight, weightUnit, preferredUnit)
+  return Math.round(totalReps * normalizedWeight)
+}
+
 /** Convert a weight value between units. Bodyweight is returned as-is. */
 export function convertWeight(value: number, from: WeightUnit, to: WeightUnit): number {
   if (from === to || from === 'bodyweight' || to === 'bodyweight') return value

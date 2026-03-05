@@ -19,7 +19,7 @@ import type { PlannedEntry } from '@/hooks/useWeeklyPlan'
 import useExercises from '@/hooks/useExercises'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Program, WorkoutSession, UpdateDto, InsertDto } from '@/types/database'
-import { getExerciseColorClasses, formatReps, formatWeightWithConversion } from '@/types/common'
+import { getExerciseColorClasses, formatReps, formatWeightWithConversion, calcEntryVolume } from '@/types/common'
 import { cn } from '@/lib/utils'
 import Modal from '@/components/ui/Modal'
 import Badge from '@/components/ui/Badge'
@@ -104,16 +104,20 @@ export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSessi
     const names = planned.map((e) => getExerciseName(e.exercise_id))
     const sessionName = names.length > 0 ? names.join(', ') : 'Workout'
     const dayStr = format(day, 'yyyy-MM-dd')
+    const totalWeight = planned.reduce((sum, entry) =>
+      sum + calcEntryVolume(entry.sets, entry.reps, entry.rep_type, entry.reps_right, entry.weight, entry.weight_unit, preferredUnit), 0)
     await onCreateSession({
       name: sessionName,
       started_at: `${dayStr}T09:00:00.000Z`,
       completed_at: `${dayStr}T10:00:00.000Z`,
+      total_weight_moved: totalWeight > 0 ? `${totalWeight.toLocaleString()} ${preferredUnit}` : null,
     })
   }
 
   const daySessions = selectedDay ? getSessionsForDay(selectedDay) : []
   const dayPlanned = selectedDay ? getPlannedForDay(selectedDay) : []
   const isFutureDay = selectedDay ? isFuture(selectedDay) : false
+  const dayCompleted = selectedDay ? isCompleted(selectedDay) : false
 
   return (
     <div>
@@ -235,6 +239,11 @@ export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSessi
                           <> — Completed {format(new Date(session.completed_at), 'h:mm a')}</>
                         )}
                       </p>
+                      {session.total_weight_moved && (
+                        <p className="mt-0.5 text-xs font-semibold text-primary-600">
+                          {session.total_weight_moved} moved
+                        </p>
+                      )}
                     </div>
                     <div className="ml-3 flex items-center gap-2">
                       <Badge variant={session.completed_at ? 'primary' : 'warning'}>
@@ -277,6 +286,9 @@ export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSessi
                     const ex = getExercise(entry.exercise_id)
                     const color = getExerciseColorClasses(ex?.color ?? null)
                     const repsDisplay = formatReps(entry.rep_type, entry.reps, entry.reps_right)
+                    const vol = dayCompleted
+                      ? calcEntryVolume(entry.sets, entry.reps, entry.rep_type, entry.reps_right, entry.weight, entry.weight_unit, preferredUnit)
+                      : 0
                     return (
                       <div
                         key={entry.id}
@@ -299,6 +311,11 @@ export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSessi
                               {entry.intensity}
                             </span>
                           )}
+                          {vol > 0 && (
+                            <span className="ml-auto text-xs font-semibold text-primary-600">
+                              {vol.toLocaleString()} {preferredUnit}
+                            </span>
+                          )}
                         </div>
                         <p className="mt-0.5 text-xs text-surface-500">
                           {[
@@ -315,6 +332,17 @@ export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSessi
                     )
                   })}
                 </div>
+                {dayCompleted && (() => {
+                  const dayTotal = dayPlanned.reduce((sum, entry) =>
+                    sum + calcEntryVolume(entry.sets, entry.reps, entry.rep_type, entry.reps_right, entry.weight, entry.weight_unit, preferredUnit), 0)
+                  return dayTotal > 0 ? (
+                    <div className="mt-2 rounded-lg bg-primary-50 px-3 py-2 text-center">
+                      <span className="font-display text-sm font-bold text-primary-700">
+                        Total Weight Moved: {dayTotal.toLocaleString()} {preferredUnit}
+                      </span>
+                    </div>
+                  ) : null
+                })()}
                 {onCreateSession && selectedDay && !hasWorkout(selectedDay) && !isFutureDay && (
                   <Button
                     size="sm"

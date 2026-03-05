@@ -126,14 +126,17 @@ export default function DataPage() {
             </label>
             <div className="ml-4 space-y-1.5">
               {CATEGORIES.map((cat) => (
-                <label key={cat.key} className="flex items-center gap-2 text-sm">
+                <label key={cat.key} className="flex items-start gap-2 text-sm">
                   <input
                     type="checkbox"
                     checked={selectedCategories.includes(cat.key)}
                     onChange={() => toggleCategory(cat.key)}
-                    className="h-4 w-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
+                    className="mt-0.5 h-4 w-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
                   />
-                  <span className="text-surface-700">{cat.label}</span>
+                  <div>
+                    <span className="text-surface-700">{cat.label}</span>
+                    <p className="text-xs text-surface-400">{cat.description}</p>
+                  </div>
                 </label>
               ))}
             </div>
@@ -203,15 +206,18 @@ export default function DataPage() {
                     {CATEGORIES.filter((cat) => availableImportCategories.includes(cat.key)).map((cat) => {
                       const count = importSummary[cat.key as keyof ImportSummary] ?? 0
                       return (
-                        <label key={cat.key} className="flex items-center gap-2 text-sm">
+                        <label key={cat.key} className="flex items-start gap-2 text-sm">
                           <input
                             type="checkbox"
                             checked={importCategories.includes(cat.key)}
                             onChange={() => toggleImportCategory(cat.key)}
-                            className="h-4 w-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
+                            className="mt-0.5 h-4 w-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
                           />
-                          <span className="text-surface-700">{cat.label}</span>
-                          <span className="text-xs text-surface-400">({count})</span>
+                          <div>
+                            <span className="text-surface-700">{cat.label}</span>
+                            <span className="ml-1 text-xs text-surface-400">({count})</span>
+                            <p className="text-xs text-surface-400">{cat.description}</p>
+                          </div>
                         </label>
                       )
                     })}
