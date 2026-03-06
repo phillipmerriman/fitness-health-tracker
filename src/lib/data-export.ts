@@ -303,6 +303,73 @@ export function getImportSummary(data: ExportData): ImportSummary {
   }
 }
 
+/** Check for exercises in the import file that share a name with existing exercises. */
+export async function findDuplicateExerciseNames(
+  userId: string,
+  data: ExportData,
+): Promise<string[]> {
+  const incoming = data.categories.exercises
+  if (!incoming?.length) return []
+
+  if (isDev) {
+    const existing = localDb.getAll('exercises').filter((e) => e.user_id === userId)
+    const existingNames = new Set(existing.map((e) => e.name.toLowerCase()))
+    return [...new Set(incoming.filter((e) => existingNames.has(e.name.toLowerCase())).map((e) => e.name))]
+  }
+
+  const { data: existing } = await supabase
+    .from('exercises')
+    .select('name')
+    .eq('user_id', userId)
+  const existingNames = new Set((existing ?? []).map((e) => e.name.toLowerCase()))
+  return [...new Set(incoming.filter((e) => existingNames.has(e.name.toLowerCase())).map((e) => e.name))]
+}
+
+/** Remove exercises (and their dependents) whose names match the given list. */
+export function stripDuplicateExercises(data: ExportData, duplicateNames: string[]): ExportData {
+  if (!data.categories.exercises || duplicateNames.length === 0) return data
+  const dupeSet = new Set(duplicateNames.map((n) => n.toLowerCase()))
+  const removedIds = new Set<string>()
+  const keptExercises = data.categories.exercises.filter((e) => {
+    if (dupeSet.has(e.name.toLowerCase())) {
+      removedIds.add(e.id)
+      return false
+    }
+    return true
+  })
+
+  const out: ExportData = { ...data, categories: { ...data.categories, exercises: keptExercises } }
+
+  // Filter child tables that reference removed exercise IDs
+  if (out.categories.workout_template_exercises) {
+    out.categories.workout_template_exercises = out.categories.workout_template_exercises.filter(
+      (te) => !removedIds.has(te.exercise_id),
+    )
+  }
+  if (out.categories.workout_sets) {
+    out.categories.workout_sets = out.categories.workout_sets.filter(
+      (s) => !removedIds.has(s.exercise_id),
+    )
+  }
+  if (out.categories.program_day_exercises) {
+    out.categories.program_day_exercises = out.categories.program_day_exercises.filter(
+      (de) => !removedIds.has(de.exercise_id),
+    )
+  }
+  if (out.categories.weekly_plans) {
+    out.categories.weekly_plans = out.categories.weekly_plans.filter(
+      (e) => !removedIds.has(e.exercise_id),
+    )
+  }
+  if (out.categories.personal_records) {
+    out.categories.personal_records = out.categories.personal_records.filter(
+      (r) => !removedIds.has(r.exercise_id),
+    )
+  }
+
+  return out
+}
+
 /** Returns the CategoryKeys that have data in the export file */
 export function getAvailableImportCategories(data: ExportData): CategoryKey[] {
   const c = data.categories
