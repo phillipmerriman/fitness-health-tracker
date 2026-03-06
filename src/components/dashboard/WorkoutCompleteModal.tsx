@@ -1,7 +1,6 @@
 import { Trophy } from 'lucide-react'
 import type { PlannedEntry } from '@/hooks/useWeeklyPlan'
 import { SESSIONS, SESSION_LABELS } from '@/hooks/useWeeklyPlan'
-import type { Session } from '@/hooks/useWeeklyPlan'
 import type { Exercise } from '@/types/database'
 import type { WeightUnit } from '@/types/common'
 import { getExerciseColorClasses, formatReps, formatWeightWithConversion, calcEntryVolume } from '@/types/common'

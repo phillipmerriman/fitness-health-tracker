@@ -8,6 +8,7 @@ import {
 } from 'date-fns'
 import { supabase, isDev } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
+import type { InsertDto } from '@/types/database'
 import type { RepType, WeightUnit } from '@/types/common'
 
 export type Session = 'morning' | 'noon' | 'night'
@@ -459,7 +460,7 @@ export async function pasteWeekEntries(
     existingCounts.set(row.date, (existingCounts.get(row.date) ?? 0) + 1)
   }
 
-  const rows: Array<Record<string, unknown>> = []
+  const rows: Array<InsertDto<'planned_entries'>> = []
   const byDay = new Map<number, typeof copiedEntries>()
   for (const entry of copiedEntries) {
     const group = byDay.get(entry.dayIndex) ?? []

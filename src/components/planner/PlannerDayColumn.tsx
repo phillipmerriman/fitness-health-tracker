@@ -77,8 +77,6 @@ export default function PlannerDayColumn({
   minHeight,
 }: PlannerDayColumnProps) {
   const today = isToday(day)
-  const allPlanned = getEntriesForDate(dateKey)
-
   // Editing state
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
 
