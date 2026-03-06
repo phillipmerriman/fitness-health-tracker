@@ -1,5 +1,4 @@
 import { useAuth } from '@/contexts/AuthContext'
-import type { WeightUnit } from '@/types/common'
 import { WEIGHT_UNIT_OPTIONS } from '@/types/common'
 
 const PREF_WEIGHT_OPTIONS = WEIGHT_UNIT_OPTIONS.filter((o) => o.value !== 'bodyweight')
