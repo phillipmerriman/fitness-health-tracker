@@ -58,7 +58,6 @@ export default function PlannerDayColumn({
   dateKey,
   exercises,
   preferredUnit,
-  getEntriesForDate,
   getEntriesForDateSession,
   onUpdateEntry,
   onRemoveEntry,
