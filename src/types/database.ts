@@ -360,6 +360,59 @@ export interface Database {
           notes?: string | null
         }
       }
+      planned_entries: {
+        Row: {
+          id: string
+          user_id: string
+          program_id: string | null
+          exercise_id: string
+          date: string
+          session: 'morning' | 'noon' | 'night'
+          sort_order: number
+          sets: number | null
+          reps: number | null
+          rep_type: 'single' | 'left_right' | 'ladder' | 'reverse_ladder' | 'double_ladder' | 'double_reverse_ladder' | 'time' | 'reps_per_minute'
+          reps_right: number | null
+          weight: number | null
+          weight_unit: 'lbs' | 'kg' | 'pood' | 'bodyweight'
+          intensity: 'light' | 'heavy' | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          program_id?: string | null
+          exercise_id: string
+          date: string
+          session?: 'morning' | 'noon' | 'night'
+          sort_order?: number
+          sets?: number | null
+          reps?: number | null
+          rep_type?: 'single' | 'left_right' | 'ladder' | 'reverse_ladder' | 'double_ladder' | 'double_reverse_ladder' | 'time' | 'reps_per_minute'
+          reps_right?: number | null
+          weight?: number | null
+          weight_unit?: 'lbs' | 'kg' | 'pood' | 'bodyweight'
+          intensity?: 'light' | 'heavy' | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          program_id?: string | null
+          exercise_id?: string
+          date?: string
+          session?: 'morning' | 'noon' | 'night'
+          sort_order?: number
+          sets?: number | null
+          reps?: number | null
+          rep_type?: 'single' | 'left_right' | 'ladder' | 'reverse_ladder' | 'double_ladder' | 'double_reverse_ladder' | 'time' | 'reps_per_minute'
+          reps_right?: number | null
+          weight?: number | null
+          weight_unit?: 'lbs' | 'kg' | 'pood' | 'bodyweight'
+          intensity?: 'light' | 'heavy' | null
+          notes?: string | null
+        }
+      }
     }
   }
 }
@@ -380,3 +433,4 @@ export type ProgramDay = Tables<'program_days'>
 export type ProgramDayExercise = Tables<'program_day_exercises'>
 export type PersonalRecord = Tables<'personal_records'>
 export type BodyMeasurement = Tables<'body_measurements'>
+export type PlannedEntryRow = Tables<'planned_entries'>

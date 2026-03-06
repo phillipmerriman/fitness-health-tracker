@@ -6,6 +6,7 @@ import {
   eachDayOfInterval,
   format,
 } from 'date-fns'
+import { supabase, isDev } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import type { RepType, WeightUnit } from '@/types/common'
 
@@ -42,19 +43,23 @@ const STORAGE_KEY = 'fittrack:weekly_plan'
 function loadAll(): PlannedEntry[] {
   const raw = localStorage.getItem(STORAGE_KEY)
   if (!raw) return []
-  // Migrate old entries that lack new fields
-  const parsed = JSON.parse(raw) as PlannedEntry[]
-  return parsed.map((e) => ({
-    sets: null,
-    reps: null,
-    rep_type: 'single' as RepType,
-    reps_right: null,
-    weight: null,
-    weight_unit: 'lbs' as WeightUnit,
-    intensity: null,
-    notes: null,
-    session: 'noon' as Session,
-    ...e,
+  const parsed = JSON.parse(raw) as Partial<PlannedEntry>[]
+  return parsed.map((e): PlannedEntry => ({
+    id: e.id!,
+    user_id: e.user_id!,
+    program_id: e.program_id ?? null,
+    date: e.date!,
+    session: e.session ?? 'noon',
+    exercise_id: e.exercise_id!,
+    sort_order: e.sort_order ?? 0,
+    sets: e.sets ?? null,
+    reps: e.reps ?? null,
+    rep_type: e.rep_type ?? 'single',
+    reps_right: e.reps_right ?? null,
+    weight: e.weight ?? null,
+    weight_unit: e.weight_unit ?? 'lbs',
+    intensity: e.intensity ?? null,
+    notes: e.notes ?? null,
   }))
 }
 
@@ -62,14 +67,19 @@ function saveAll(entries: PlannedEntry[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
 }
 
+/** Cast Supabase row to PlannedEntry (types are compatible) */
+function asEntry(row: Record<string, unknown>): PlannedEntry {
+  return row as unknown as PlannedEntry
+}
+
+function asEntries(rows: Record<string, unknown>[]): PlannedEntry[] {
+  return rows.map(asEntry)
+}
+
 interface UseWeeklyPlanOptions {
-  /** The reference date for week 0 (program start_date or current date) */
   startDate?: Date
-  /** Which week offset to display (0-indexed) */
   weekOffset?: number
-  /** Scope entries to a specific program */
   programId?: string | null
-  /** Also include entries with no program (program_id: null) when programId is set */
   includeUnscoped?: boolean
 }
 
@@ -89,17 +99,37 @@ export default function useWeeklyPlan(options: UseWeeklyPlanOptions = {}) {
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const dateKeys = days.map((d) => format(d, 'yyyy-MM-dd'))
 
-  const fetch = useCallback(() => {
+  const fetch = useCallback(async () => {
     if (!user) return
-    const all = loadAll().filter(
-      (e) =>
-        e.user_id === user.id &&
-        dateKeys.includes(e.date) &&
-        (programId
-          ? (e.program_id === programId || (includeUnscoped && e.program_id == null))
-          : true),
-    )
-    setEntries(all)
+    if (isDev) {
+      const all = loadAll().filter(
+        (e) =>
+          e.user_id === user.id &&
+          dateKeys.includes(e.date) &&
+          (programId
+            ? (e.program_id === programId || (includeUnscoped && e.program_id == null))
+            : true),
+      )
+      setEntries(all)
+    } else {
+      let query = supabase
+        .from('planned_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .in('date', dateKeys)
+
+      if (programId) {
+        if (includeUnscoped) {
+          query = query.or(`program_id.eq.${programId},program_id.is.null`)
+        } else {
+          query = query.eq('program_id', programId)
+        }
+      }
+
+      const { data, error } = await query.order('sort_order')
+      if (error) throw error
+      setEntries(asEntries(data ?? []))
+    }
   }, [user, dateKeys.join(','), programId, includeUnscoped])
 
   useEffect(() => { fetch() }, [fetch])
@@ -117,7 +147,7 @@ export default function useWeeklyPlan(options: UseWeeklyPlanOptions = {}) {
       .sort((a, b) => a.sort_order - b.sort_order)
   }
 
-  function addEntry(dateKey: string, exerciseId: string, presets?: PlannedEntryUpdate, session: Session = 'morning') {
+  async function addEntry(dateKey: string, exerciseId: string, presets?: PlannedEntryUpdate, session: Session = 'morning') {
     if (!user) return
     const sessionEntries = entries.filter((e) => e.date === dateKey && e.session === session)
     const entry: PlannedEntry = {
@@ -137,70 +167,150 @@ export default function useWeeklyPlan(options: UseWeeklyPlanOptions = {}) {
       intensity: presets?.intensity ?? null,
       notes: presets?.notes ?? null,
     }
-    const all = loadAll()
-    all.push(entry)
-    saveAll(all)
+
+    if (isDev) {
+      const all = loadAll()
+      all.push(entry)
+      saveAll(all)
+    } else {
+      const { error } = await supabase.from('planned_entries').insert({
+        id: entry.id,
+        user_id: entry.user_id,
+        program_id: entry.program_id,
+        date: entry.date,
+        session: entry.session,
+        exercise_id: entry.exercise_id,
+        sort_order: entry.sort_order,
+        sets: entry.sets,
+        reps: entry.reps,
+        rep_type: entry.rep_type,
+        reps_right: entry.reps_right,
+        weight: entry.weight,
+        weight_unit: entry.weight_unit,
+        intensity: entry.intensity,
+        notes: entry.notes,
+      })
+      if (error) throw error
+    }
     setEntries((prev) => [...prev, entry])
   }
 
-  function updateEntry(id: string, values: PlannedEntryUpdate) {
-    const all = loadAll()
-    const idx = all.findIndex((e) => e.id === id)
-    if (idx === -1) return
-    Object.assign(all[idx], values)
-    saveAll(all)
+  async function updateEntry(id: string, values: PlannedEntryUpdate) {
+    if (isDev) {
+      const all = loadAll()
+      const idx = all.findIndex((e) => e.id === id)
+      if (idx === -1) return
+      Object.assign(all[idx], values)
+      saveAll(all)
+    } else {
+      const { error } = await supabase.from('planned_entries').update(values).eq('id', id)
+      if (error) throw error
+    }
     setEntries((prev) =>
       prev.map((e) => (e.id === id ? { ...e, ...values } : e)),
     )
   }
 
-  function removeEntry(id: string) {
-    const all = loadAll().filter((e) => e.id !== id)
-    saveAll(all)
+  async function removeEntry(id: string) {
+    if (isDev) {
+      const all = loadAll().filter((e) => e.id !== id)
+      saveAll(all)
+    } else {
+      const { error } = await supabase.from('planned_entries').delete().eq('id', id)
+      if (error) throw error
+    }
     setEntries((prev) => prev.filter((e) => e.id !== id))
   }
 
-  function moveEntry(entryId: string, toDateKey: string, toIndex: number, toSession?: Session) {
-    const all = loadAll()
-    const idx = all.findIndex((e) => e.id === entryId)
-    if (idx === -1) return
+  async function moveEntry(entryId: string, toDateKey: string, toIndex: number, toSession?: Session) {
+    if (isDev) {
+      const all = loadAll()
+      const idx = all.findIndex((e) => e.id === entryId)
+      if (idx === -1) return
 
-    all[idx].date = toDateKey
-    if (toSession) all[idx].session = toSession
+      all[idx].date = toDateKey
+      if (toSession) all[idx].session = toSession
 
-    const targetSession = all[idx].session
-    const sessionEntries = all
-      .filter((e) => e.date === toDateKey && e.session === targetSession && e.user_id === user?.id && (programId ? e.program_id === programId : true))
-      .sort((a, b) => a.sort_order - b.sort_order)
+      const targetSession = all[idx].session
+      const sessionEntries = all
+        .filter((e) => e.date === toDateKey && e.session === targetSession && e.user_id === user?.id && (programId ? e.program_id === programId : true))
+        .sort((a, b) => a.sort_order - b.sort_order)
 
-    const withoutMoved = sessionEntries.filter((e) => e.id !== entryId)
-    withoutMoved.splice(toIndex, 0, all[idx])
-    withoutMoved.forEach((e, i) => {
-      const globalIdx = all.findIndex((a) => a.id === e.id)
-      if (globalIdx !== -1) all[globalIdx].sort_order = i
-    })
+      const withoutMoved = sessionEntries.filter((e) => e.id !== entryId)
+      withoutMoved.splice(toIndex, 0, all[idx])
+      withoutMoved.forEach((e, i) => {
+        const globalIdx = all.findIndex((a) => a.id === e.id)
+        if (globalIdx !== -1) all[globalIdx].sort_order = i
+      })
 
-    saveAll(all)
-    setEntries(
-      all.filter((e) => e.user_id === user?.id && dateKeys.includes(e.date) && (programId ? e.program_id === programId : true)),
-    )
+      saveAll(all)
+      setEntries(
+        all.filter((e) => e.user_id === user?.id && dateKeys.includes(e.date) && (programId ? e.program_id === programId : true)),
+      )
+    } else {
+      const entry = entries.find((e) => e.id === entryId)
+      if (!entry) return
+
+      const targetSession = toSession ?? entry.session
+
+      await supabase.from('planned_entries').update({
+        date: toDateKey,
+        session: targetSession,
+      }).eq('id', entryId)
+
+      const updatedEntry = { ...entry, date: toDateKey, session: targetSession }
+      const targetEntries = entries
+        .filter((e) => e.date === toDateKey && e.session === targetSession && e.id !== entryId)
+        .sort((a, b) => a.sort_order - b.sort_order)
+
+      targetEntries.splice(toIndex, 0, updatedEntry)
+
+      for (let i = 0; i < targetEntries.length; i++) {
+        await supabase.from('planned_entries').update({ sort_order: i }).eq('id', targetEntries[i].id)
+      }
+
+      await fetch()
+    }
   }
 
-  function clearDate(dateKey: string) {
+  async function clearDate(dateKey: string) {
     if (!user) return
-    const all = loadAll().filter(
-      (e) => !(e.date === dateKey && e.user_id === user.id && (programId ? e.program_id === programId : true)),
-    )
-    saveAll(all)
+    if (isDev) {
+      const all = loadAll().filter(
+        (e) => !(e.date === dateKey && e.user_id === user.id && (programId ? e.program_id === programId : true)),
+      )
+      saveAll(all)
+    } else {
+      let query = supabase.from('planned_entries').delete()
+        .eq('user_id', user.id)
+        .eq('date', dateKey)
+      if (programId) {
+        query = query.eq('program_id', programId)
+      }
+      const { error } = await query
+      if (error) throw error
+    }
     setEntries((prev) => prev.filter((e) => e.date !== dateKey))
   }
 
-  function clearSession(dateKey: string, session: Session) {
+  async function clearSession(dateKey: string, session: Session) {
     if (!user) return
-    const all = loadAll().filter(
-      (e) => !(e.date === dateKey && e.session === session && e.user_id === user.id && (programId ? e.program_id === programId : true)),
-    )
-    saveAll(all)
+    if (isDev) {
+      const all = loadAll().filter(
+        (e) => !(e.date === dateKey && e.session === session && e.user_id === user.id && (programId ? e.program_id === programId : true)),
+      )
+      saveAll(all)
+    } else {
+      let query = supabase.from('planned_entries').delete()
+        .eq('user_id', user.id)
+        .eq('date', dateKey)
+        .eq('session', session)
+      if (programId) {
+        query = query.eq('program_id', programId)
+      }
+      const { error } = await query
+      if (error) throw error
+    }
     setEntries((prev) => prev.filter((e) => !(e.date === dateKey && e.session === session)))
   }
 
@@ -223,57 +333,133 @@ export default function useWeeklyPlan(options: UseWeeklyPlanOptions = {}) {
 }
 
 /** Load all entries for a specific week of a program, tagged with day-of-week index */
-export function loadWeekEntries(
+export async function loadWeekEntries(
   userId: string,
   programId: string,
   programStart: Date,
   weekOffset: number,
-): (PlannedEntry & { dayIndex: number })[] {
+): Promise<(PlannedEntry & { dayIndex: number })[]> {
   const weekStart = startOfWeek(addWeeks(programStart, weekOffset), { weekStartsOn: 0 })
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 0 })
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const dateKeys = days.map((d) => format(d, 'yyyy-MM-dd'))
 
-  return loadAll()
-    .filter((e) => e.user_id === userId && e.program_id === programId && dateKeys.includes(e.date))
-    .map((e) => ({ ...e, dayIndex: dateKeys.indexOf(e.date) }))
+  if (isDev) {
+    return loadAll()
+      .filter((e) => e.user_id === userId && e.program_id === programId && dateKeys.includes(e.date))
+      .map((e) => ({ ...e, dayIndex: dateKeys.indexOf(e.date) }))
+  }
+
+  const { data, error } = await supabase
+    .from('planned_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('program_id', programId)
+    .in('date', dateKeys)
+    .order('sort_order')
+  if (error) throw error
+  return asEntries(data ?? []).map((e) => ({ ...e, dayIndex: dateKeys.indexOf(e.date) }))
 }
 
 /** Clear all entries for a specific week of a program */
-export function clearWeekEntries(
+export async function clearWeekEntries(
   userId: string,
   programId: string,
   programStart: Date,
   weekOffset: number,
-): void {
+): Promise<void> {
   const weekStart = startOfWeek(addWeeks(programStart, weekOffset), { weekStartsOn: 0 })
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 0 })
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
-  const dateKeys = new Set(days.map((d) => format(d, 'yyyy-MM-dd')))
+  const dateKeys = days.map((d) => format(d, 'yyyy-MM-dd'))
 
-  const all = loadAll().filter(
-    (e) => !(e.user_id === userId && e.program_id === programId && dateKeys.has(e.date)),
-  )
-  saveAll(all)
+  if (isDev) {
+    const all = loadAll().filter(
+      (e) => !(e.user_id === userId && e.program_id === programId && dateKeys.includes(e.date)),
+    )
+    saveAll(all)
+    return
+  }
+
+  const { error } = await supabase
+    .from('planned_entries')
+    .delete()
+    .eq('user_id', userId)
+    .eq('program_id', programId)
+    .in('date', dateKeys)
+  if (error) throw error
 }
 
 /** Paste copied week entries into a target week */
-export function pasteWeekEntries(
+export async function pasteWeekEntries(
   userId: string,
   programId: string,
   programStart: Date,
   targetWeekOffset: number,
   copiedEntries: (PlannedEntry & { dayIndex: number })[],
-): void {
+): Promise<void> {
   const weekStart = startOfWeek(addWeeks(programStart, targetWeekOffset), { weekStartsOn: 0 })
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 0 })
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const dateKeys = days.map((d) => format(d, 'yyyy-MM-dd'))
 
-  const all = loadAll()
-  const now = new Date().toISOString()
+  if (isDev) {
+    const all = loadAll()
 
-  // Group by dayIndex to compute sort_order per day
+    const byDay = new Map<number, typeof copiedEntries>()
+    for (const entry of copiedEntries) {
+      const group = byDay.get(entry.dayIndex) ?? []
+      group.push(entry)
+      byDay.set(entry.dayIndex, group)
+    }
+
+    for (const [dayIndex, dayEntries] of byDay) {
+      const targetDate = dateKeys[dayIndex]
+      if (!targetDate) continue
+      const existingCount = all.filter(
+        (e) => e.user_id === userId && e.program_id === programId && e.date === targetDate,
+      ).length
+      const sorted = dayEntries.sort((a, b) => a.sort_order - b.sort_order)
+      for (let i = 0; i < sorted.length; i++) {
+        const src = sorted[i]
+        all.push({
+          id: crypto.randomUUID(),
+          user_id: userId,
+          program_id: programId,
+          date: targetDate,
+          session: src.session ?? 'noon' as Session,
+          exercise_id: src.exercise_id,
+          sort_order: existingCount + i,
+          sets: src.sets,
+          reps: src.reps,
+          rep_type: src.rep_type,
+          reps_right: src.reps_right,
+          weight: src.weight,
+          weight_unit: src.weight_unit,
+          intensity: src.intensity,
+          notes: src.notes,
+        })
+      }
+    }
+
+    saveAll(all)
+    return
+  }
+
+  // Get existing counts per date for sort_order
+  const { data: existing } = await supabase
+    .from('planned_entries')
+    .select('date')
+    .eq('user_id', userId)
+    .eq('program_id', programId)
+    .in('date', dateKeys)
+
+  const existingCounts = new Map<string, number>()
+  for (const row of (existing ?? [])) {
+    existingCounts.set(row.date, (existingCounts.get(row.date) ?? 0) + 1)
+  }
+
+  const rows: Array<Record<string, unknown>> = []
   const byDay = new Map<number, typeof copiedEntries>()
   for (const entry of copiedEntries) {
     const group = byDay.get(entry.dayIndex) ?? []
@@ -281,24 +467,20 @@ export function pasteWeekEntries(
     byDay.set(entry.dayIndex, group)
   }
 
-  for (const [dayIndex, entries] of byDay) {
+  for (const [dayIndex, dayEntries] of byDay) {
     const targetDate = dateKeys[dayIndex]
     if (!targetDate) continue
-    // Count existing entries for this date to set sort_order
-    const existingCount = all.filter(
-      (e) => e.user_id === userId && e.program_id === programId && e.date === targetDate,
-    ).length
-    const sorted = entries.sort((a, b) => a.sort_order - b.sort_order)
+    const baseCount = existingCounts.get(targetDate) ?? 0
+    const sorted = dayEntries.sort((a, b) => a.sort_order - b.sort_order)
     for (let i = 0; i < sorted.length; i++) {
       const src = sorted[i]
-      all.push({
-        id: crypto.randomUUID(),
+      rows.push({
         user_id: userId,
         program_id: programId,
         date: targetDate,
-        session: src.session ?? 'noon' as Session,
+        session: src.session ?? 'noon',
         exercise_id: src.exercise_id,
-        sort_order: existingCount + i,
+        sort_order: baseCount + i,
         sets: src.sets,
         reps: src.reps,
         rep_type: src.rep_type,
@@ -311,18 +493,47 @@ export function pasteWeekEntries(
     }
   }
 
-  saveAll(all)
+  if (rows.length > 0) {
+    const { error } = await supabase.from('planned_entries').insert(rows)
+    if (error) throw error
+  }
 }
 
 /** Load all entries for a given program across all weeks */
-export function loadProgramEntries(userId: string, programId: string): PlannedEntry[] {
-  return loadAll().filter((e) => e.user_id === userId && e.program_id === programId)
+export async function loadProgramEntries(userId: string, programId: string): Promise<PlannedEntry[]> {
+  if (isDev) {
+    return loadAll().filter((e) => e.user_id === userId && e.program_id === programId)
+  }
+  const { data, error } = await supabase
+    .from('planned_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('program_id', programId)
+    .order('date')
+    .order('sort_order')
+  if (error) throw error
+  return asEntries(data ?? [])
 }
 
 /** Load all entries for a user — includes program entries and unscoped (program_id: null) entries */
-export function loadUserEntries(userId: string, programId?: string | null): PlannedEntry[] {
-  return loadAll().filter((e) =>
-    e.user_id === userId &&
-    (programId ? (e.program_id === programId || e.program_id == null) : true),
-  )
+export async function loadUserEntries(userId: string, programId?: string | null): Promise<PlannedEntry[]> {
+  if (isDev) {
+    return loadAll().filter((e) =>
+      e.user_id === userId &&
+      (programId ? (e.program_id === programId || e.program_id == null) : true),
+    )
+  }
+
+  let query = supabase
+    .from('planned_entries')
+    .select('*')
+    .eq('user_id', userId)
+
+  if (programId) {
+    query = query.or(`program_id.eq.${programId},program_id.is.null`)
+  }
+
+  const { data, error } = await query.order('date').order('sort_order')
+  if (error) throw error
+  return asEntries(data ?? [])
 }

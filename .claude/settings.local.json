@@ -8,7 +8,8 @@
       "Bash(npm install -D tailwindcss @tailwindcss/vite)",
       "Bash(npx tsc --noEmit)",
       "Bash(npx vite build)",
-      "Bash(npx tsc --noEmit --pretty)"
+      "Bash(npx tsc --noEmit --pretty)",
+      "Bash(node -e \"const p = require\\(''./node_modules/@supabase/postgrest-js/package.json''\\); console.log\\(p.version\\)\")"
     ]
   }
 }

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   startOfMonth,
   endOfMonth,
@@ -51,9 +51,10 @@ export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSessi
   const preferredUnit = profile?.preferred_weight_unit ?? 'lbs'
 
   // Load all planned entries (scoped to active program if one exists)
-  const plannedEntries = useMemo(() => {
-    if (!user) return [] as PlannedEntry[]
-    return loadUserEntries(user.id, activeProgram?.id ?? null)
+  const [plannedEntries, setPlannedEntries] = useState<PlannedEntry[]>([])
+  useEffect(() => {
+    if (!user) return
+    loadUserEntries(user.id, activeProgram?.id ?? null).then(setPlannedEntries)
   }, [activeProgram, user])
 
   const plannedDates = useMemo(() => {

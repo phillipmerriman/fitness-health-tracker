@@ -4,14 +4,16 @@
 
 -- ---------- profiles ----------
 create table public.profiles (
-  id            uuid primary key references auth.users on delete cascade,
-  email         text not null,
-  display_name  text,
-  avatar_url    text,
-  unit_system   text not null default 'imperial'
-                  check (unit_system in ('imperial','metric')),
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
+  id                    uuid primary key references auth.users on delete cascade,
+  email                 text not null,
+  display_name          text,
+  avatar_url            text,
+  unit_system           text not null default 'imperial'
+                          check (unit_system in ('imperial','metric')),
+  preferred_weight_unit text not null default 'lbs'
+                          check (preferred_weight_unit in ('lbs','kg','pood')),
+  created_at            timestamptz not null default now(),
+  updated_at            timestamptz not null default now()
 );
 
 -- ---------- exercises ----------
@@ -20,7 +22,9 @@ create table public.exercises (
   user_id         uuid not null references public.profiles(id) on delete cascade,
   name            text not null,
   exercise_type   text not null default 'strength'
-                    check (exercise_type in ('strength','cardio','flexibility','other')),
+                    check (exercise_type in ('strength','cardio','flexibility','warm_up','cool_down','other')),
+  exercise_rate   text
+                    check (exercise_rate is null or exercise_rate in ('ballistic','grind')),
   primary_muscle  text not null default 'other'
                     check (primary_muscle in (
                       'chest','back','shoulders','biceps','triceps','forearms',
@@ -30,6 +34,7 @@ create table public.exercises (
                     check (equipment in (
                       'barbell','dumbbell','machine','cable','bodyweight',
                       'kettlebell','band','steel_mace','steel_club','other')),
+  color           text,
   notes           text,
   is_archived     boolean not null default false,
   created_at      timestamptz not null default now(),
@@ -61,15 +66,16 @@ create table public.workout_template_exercises (
 
 -- ---------- workout sessions (logs) ----------
 create table public.workout_sessions (
-  id            uuid primary key default gen_random_uuid(),
-  user_id       uuid not null references public.profiles(id) on delete cascade,
-  template_id   uuid references public.workout_templates(id) on delete set null,
-  name          text not null,
-  started_at    timestamptz not null default now(),
-  completed_at  timestamptz,
-  duration_sec  int,
-  notes         text,
-  created_at    timestamptz not null default now()
+  id                  uuid primary key default gen_random_uuid(),
+  user_id             uuid not null references public.profiles(id) on delete cascade,
+  template_id         uuid references public.workout_templates(id) on delete set null,
+  name                text not null,
+  started_at          timestamptz not null default now(),
+  completed_at        timestamptz,
+  duration_sec        int,
+  total_weight_moved  text,
+  notes               text,
+  created_at          timestamptz not null default now()
 );
 
 create table public.workout_sets (
@@ -94,6 +100,7 @@ create table public.programs (
   name        text not null,
   description text,
   weeks       int not null default 1,
+  start_date  date not null default current_date,
   is_active   boolean not null default false,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
@@ -145,6 +152,30 @@ create table public.body_measurements (
   created_at    timestamptz not null default now()
 );
 
+-- ---------- planned entries (weekly planner) ----------
+create table public.planned_entries (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null references public.profiles(id) on delete cascade,
+  program_id    uuid references public.programs(id) on delete cascade,
+  exercise_id   uuid not null references public.exercises(id) on delete cascade,
+  date          date not null,
+  session       text not null default 'noon'
+                  check (session in ('morning','noon','night')),
+  sort_order    int not null default 0,
+  sets          int,
+  reps          int,
+  rep_type      text not null default 'single'
+                  check (rep_type in ('single','left_right','ladder','reverse_ladder','double_ladder','double_reverse_ladder','time','reps_per_minute')),
+  reps_right    int,
+  weight        numeric,
+  weight_unit   text not null default 'lbs'
+                  check (weight_unit in ('lbs','kg','pood','bodyweight')),
+  intensity     text
+                  check (intensity is null or intensity in ('light','heavy')),
+  notes         text,
+  created_at    timestamptz not null default now()
+);
+
 -- ============================================================
 -- INDEXES
 -- ============================================================
@@ -155,6 +186,9 @@ create index idx_workout_sets_session    on public.workout_sets(session_id);
 create index idx_programs_user           on public.programs(user_id);
 create index idx_personal_records_user   on public.personal_records(user_id);
 create index idx_body_measurements_user  on public.body_measurements(user_id);
+create index idx_planned_entries_user    on public.planned_entries(user_id);
+create index idx_planned_entries_date    on public.planned_entries(user_id, date);
+create index idx_planned_entries_program on public.planned_entries(user_id, program_id);
 
 -- ============================================================
 -- ROW LEVEL SECURITY
@@ -170,6 +204,7 @@ alter table public.program_days              enable row level security;
 alter table public.program_day_exercises     enable row level security;
 alter table public.personal_records          enable row level security;
 alter table public.body_measurements         enable row level security;
+alter table public.planned_entries           enable row level security;
 
 -- Helper: owner-only policies
 -- profiles
@@ -267,6 +302,12 @@ create policy "Users can view own measurements"   on public.body_measurements fo
 create policy "Users can insert own measurements" on public.body_measurements for insert with check (auth.uid() = user_id);
 create policy "Users can update own measurements" on public.body_measurements for update using (auth.uid() = user_id);
 create policy "Users can delete own measurements" on public.body_measurements for delete using (auth.uid() = user_id);
+
+-- planned_entries
+create policy "Users can view own planned entries"   on public.planned_entries for select using (auth.uid() = user_id);
+create policy "Users can insert own planned entries" on public.planned_entries for insert with check (auth.uid() = user_id);
+create policy "Users can update own planned entries" on public.planned_entries for update using (auth.uid() = user_id);
+create policy "Users can delete own planned entries" on public.planned_entries for delete using (auth.uid() = user_id);
 
 -- ============================================================
 -- TRIGGERS

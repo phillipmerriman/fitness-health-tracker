@@ -99,29 +99,29 @@ export default function ProgramDetailPage() {
     await saveDay(name, entries)
   }
 
-  function handleCopyWeek(weekOffset: number) {
+  async function handleCopyWeek(weekOffset: number) {
     if (!user || !program) return
-    const entries = loadWeekEntries(user.id, program.id, programStart, weekOffset)
+    const entries = await loadWeekEntries(user.id, program.id, programStart, weekOffset)
     setCopiedWeek({ weekOffset, entries })
   }
 
-  function handlePasteWeek(targetWeekOffset: number) {
+  async function handlePasteWeek(targetWeekOffset: number) {
     if (!user || !program || !copiedWeek) return
-    const targetEntries = loadWeekEntries(user.id, program.id, programStart, targetWeekOffset)
+    const targetEntries = await loadWeekEntries(user.id, program.id, programStart, targetWeekOffset)
     if (targetEntries.length > 0) {
       setPasteConfirm({ targetWeekOffset })
       return
     }
-    pasteWeekEntries(user.id, program.id, programStart, targetWeekOffset, copiedWeek.entries)
+    await pasteWeekEntries(user.id, program.id, programStart, targetWeekOffset, copiedWeek.entries)
     setRevision((r) => r + 1)
   }
 
-  function doPaste(targetWeekOffset: number, replace: boolean) {
+  async function doPaste(targetWeekOffset: number, replace: boolean) {
     if (!user || !program || !copiedWeek) return
     if (replace) {
-      clearWeekEntries(user.id, program.id, programStart, targetWeekOffset)
+      await clearWeekEntries(user.id, program.id, programStart, targetWeekOffset)
     }
-    pasteWeekEntries(user.id, program.id, programStart, targetWeekOffset, copiedWeek.entries)
+    await pasteWeekEntries(user.id, program.id, programStart, targetWeekOffset, copiedWeek.entries)
     setRevision((r) => r + 1)
   }
 
