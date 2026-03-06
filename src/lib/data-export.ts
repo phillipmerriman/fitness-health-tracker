@@ -349,6 +349,125 @@ function upsertRowsNoUserId<T extends { id: string }>(
   return count
 }
 
+/** Known columns per table — anything else is stripped before sending to Supabase. */
+const TABLE_COLUMNS: Record<string, Set<string>> = {
+  exercises: new Set(['id', 'user_id', 'name', 'exercise_type', 'exercise_rate', 'primary_muscle', 'equipment', 'notes', 'color', 'is_archived', 'created_at', 'updated_at']),
+  workout_templates: new Set(['id', 'user_id', 'name', 'description', 'created_at', 'updated_at']),
+  workout_template_exercises: new Set(['id', 'template_id', 'exercise_id', 'sort_order', 'target_sets', 'target_reps', 'target_weight', 'target_duration_sec', 'rest_seconds', 'notes']),
+  workout_sessions: new Set(['id', 'user_id', 'template_id', 'name', 'started_at', 'completed_at', 'duration_sec', 'total_weight_moved', 'notes', 'created_at']),
+  workout_sets: new Set(['id', 'session_id', 'exercise_id', 'set_number', 'reps', 'weight', 'duration_sec', 'distance_meters', 'rpe', 'is_warmup', 'notes', 'performed_at']),
+  programs: new Set(['id', 'user_id', 'name', 'description', 'weeks', 'start_date', 'is_active', 'created_at', 'updated_at']),
+  program_days: new Set(['id', 'program_id', 'week_number', 'day_number', 'name', 'sort_order']),
+  program_day_exercises: new Set(['id', 'program_day_id', 'exercise_id', 'sort_order', 'target_sets', 'target_reps', 'target_weight', 'target_duration_sec', 'rest_seconds', 'notes']),
+  planned_entries: new Set(['id', 'user_id', 'program_id', 'exercise_id', 'date', 'session', 'sort_order', 'sets', 'reps', 'rep_type', 'reps_right', 'weight', 'weight_unit', 'intensity', 'notes', 'created_at']),
+  personal_records: new Set(['id', 'user_id', 'exercise_id', 'record_type', 'value', 'achieved_at', 'set_id', 'created_at']),
+  body_measurements: new Set(['id', 'user_id', 'measured_at', 'weight', 'body_fat_pct', 'notes', 'created_at']),
+}
+
+function stripExtraColumns(table: string, rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  const allowed = TABLE_COLUMNS[table]
+  if (!allowed) return rows
+  return rows.map((row) => {
+    const clean: Record<string, unknown> = {}
+    for (const key of Object.keys(row)) {
+      if (allowed.has(key)) clean[key] = row[key]
+    }
+    return clean
+  })
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * Remap any non-standard IDs in the export data to valid v4 UUIDs,
+ * preserving all internal foreign-key references between tables.
+ */
+function remapIds(data: ExportData): ExportData {
+  const idMap = new Map<string, string>()
+
+  function remap(id: string | null | undefined): string | null | undefined {
+    if (id == null) return id
+    if (UUID_RE.test(id)) return id
+    if (!idMap.has(id)) idMap.set(id, crypto.randomUUID())
+    return idMap.get(id)!
+  }
+
+  const c = data.categories
+  const out: ExportData = { ...data, categories: {} }
+
+  if (c.exercises) {
+    out.categories.exercises = c.exercises.map((r) => ({ ...r, id: remap(r.id)! }))
+  }
+  if (c.workout_templates) {
+    out.categories.workout_templates = c.workout_templates.map((r) => ({ ...r, id: remap(r.id)! }))
+  }
+  if (c.workout_template_exercises) {
+    out.categories.workout_template_exercises = c.workout_template_exercises.map((r) => ({
+      ...r,
+      id: remap(r.id)!,
+      template_id: remap(r.template_id)!,
+      exercise_id: remap(r.exercise_id)!,
+    }))
+  }
+  if (c.workout_sessions) {
+    const templateIds = new Set(c.workout_templates?.map((t) => t.id) ?? [])
+    out.categories.workout_sessions = c.workout_sessions.map((r) => ({
+      ...r,
+      id: remap(r.id)!,
+      template_id: r.template_id && templateIds.has(r.template_id) ? remap(r.template_id)! : null,
+    }))
+  }
+  if (c.workout_sets) {
+    out.categories.workout_sets = c.workout_sets.map((r) => ({
+      ...r,
+      id: remap(r.id)!,
+      session_id: remap(r.session_id)!,
+      exercise_id: remap(r.exercise_id)!,
+    }))
+  }
+  if (c.programs) {
+    out.categories.programs = c.programs.map((r) => ({ ...r, id: remap(r.id)! }))
+  }
+  if (c.program_days) {
+    out.categories.program_days = c.program_days.map((r) => ({
+      ...r,
+      id: remap(r.id)!,
+      program_id: remap(r.program_id)!,
+    }))
+  }
+  if (c.program_day_exercises) {
+    out.categories.program_day_exercises = c.program_day_exercises.map((r) => ({
+      ...r,
+      id: remap(r.id)!,
+      program_day_id: remap(r.program_day_id)!,
+      exercise_id: remap(r.exercise_id)!,
+    }))
+  }
+  if (c.weekly_plans) {
+    const programIds = new Set(c.programs?.map((p) => p.id) ?? [])
+    out.categories.weekly_plans = c.weekly_plans.map((r) => ({
+      ...r,
+      id: remap(r.id)!,
+      exercise_id: remap(r.exercise_id)!,
+      program_id: r.program_id && programIds.has(r.program_id) ? remap(r.program_id)! : null,
+    }))
+  }
+  if (c.personal_records) {
+    const setIds = new Set(c.workout_sets?.map((s) => s.id) ?? [])
+    out.categories.personal_records = c.personal_records.map((r) => ({
+      ...r,
+      id: remap(r.id)!,
+      exercise_id: remap(r.exercise_id)!,
+      set_id: r.set_id && setIds.has(r.set_id) ? remap(r.set_id)! : null,
+    }))
+  }
+  if (c.body_measurements) {
+    out.categories.body_measurements = c.body_measurements.map((r) => ({ ...r, id: remap(r.id)! }))
+  }
+
+  return out
+}
+
 /** Upsert rows into a Supabase table, stamping user_id on each row. */
 async function supabaseUpsert(
   table: TableName,
@@ -356,8 +475,8 @@ async function supabaseUpsert(
   userId: string,
 ): Promise<number> {
   if (incoming.length === 0) return 0
-  const rows = incoming.map((r) => ({ ...r, user_id: userId }))
-  const { error } = await supabase.from(table).upsert(rows as never)
+  const rows = stripExtraColumns(table, incoming.map((r) => ({ ...r, user_id: userId })))
+  const { error } = await supabase.from(table).upsert(rows as never, { onConflict: 'id' })
   if (error) throw error
   return rows.length
 }
@@ -368,12 +487,15 @@ async function supabaseUpsertNoUser(
   incoming: Record<string, unknown>[],
 ): Promise<number> {
   if (incoming.length === 0) return 0
-  const { error } = await supabase.from(table).upsert(incoming as never)
+  const rows = stripExtraColumns(table, incoming)
+  const { error } = await supabase.from(table).upsert(rows as never, { onConflict: 'id' })
   if (error) throw error
   return incoming.length
 }
 
 export async function importData(userId: string, data: ExportData, selectedCategories?: CategoryKey[]): Promise<ImportSummary> {
+  // Remap invalid IDs to proper UUIDs for Supabase, preserving cross-references
+  if (!isDev) data = remapIds(data)
   const c = data.categories
   const sel = selectedCategories ? new Set(selectedCategories) : null
   const include = (key: CategoryKey) => !sel || sel.has(key)
@@ -443,37 +565,88 @@ export async function importData(userId: string, data: ExportData, selectedCateg
       result.body_measurements = upsertRows('body_measurements', c.body_measurements, userId)
     }
   } else {
-    // Supabase path
+    // Supabase path — insert in FK-safe order.
+    // Build a set of known exercise IDs (from import + already in DB).
+    const knownExerciseIds = new Set<string>()
+    const knownTemplateIds = new Set<string>()
+    const knownSessionIds = new Set<string>()
+    const knownSetIds = new Set<string>()
+    const knownProgramIds = new Set<string>()
+    const knownDayIds = new Set<string>()
+
+    // Fetch existing IDs from Supabase so we know what FKs are valid
+    const [{ data: existingEx }, { data: existingTpl }, { data: existingSes }, { data: existingPrg }] = await Promise.all([
+      supabase.from('exercises').select('id').eq('user_id', userId),
+      supabase.from('workout_templates').select('id').eq('user_id', userId),
+      supabase.from('workout_sessions').select('id').eq('user_id', userId),
+      supabase.from('programs').select('id').eq('user_id', userId),
+    ])
+    for (const r of existingEx ?? []) knownExerciseIds.add(r.id)
+    for (const r of existingTpl ?? []) knownTemplateIds.add(r.id)
+    for (const r of existingSes ?? []) knownSessionIds.add(r.id)
+    for (const r of existingPrg ?? []) knownProgramIds.add(r.id)
+
+    // 1. Exercises (no FKs)
     if (include('exercises') && c.exercises) {
       result.exercises = await supabaseUpsert('exercises', c.exercises as unknown as Record<string, unknown>[], userId)
+      for (const e of c.exercises) knownExerciseIds.add(e.id)
     }
+
+    // 2. Workout templates (no FKs)
     if (include('workout_templates') && c.workout_templates) {
       result.workout_templates = await supabaseUpsert('workout_templates', c.workout_templates as unknown as Record<string, unknown>[], userId)
+      for (const t of c.workout_templates) knownTemplateIds.add(t.id)
       if (c.workout_template_exercises) {
-        result.workout_template_exercises = await supabaseUpsertNoUser('workout_template_exercises', c.workout_template_exercises as unknown as Record<string, unknown>[])
+        const valid = c.workout_template_exercises.filter(
+          (te) => knownTemplateIds.has(te.template_id) && knownExerciseIds.has(te.exercise_id),
+        )
+        result.workout_template_exercises = await supabaseUpsertNoUser('workout_template_exercises', valid as unknown as Record<string, unknown>[])
       }
     }
+
+    // 3. Workout sessions (FK: template_id nullable)
     if (include('workout_sessions') && c.workout_sessions) {
       result.workout_sessions = await supabaseUpsert('workout_sessions', c.workout_sessions as unknown as Record<string, unknown>[], userId)
+      for (const s of c.workout_sessions) knownSessionIds.add(s.id)
       if (c.workout_sets) {
-        result.workout_sets = await supabaseUpsertNoUser('workout_sets', c.workout_sets as unknown as Record<string, unknown>[])
+        const valid = c.workout_sets.filter(
+          (s) => knownSessionIds.has(s.session_id) && knownExerciseIds.has(s.exercise_id),
+        )
+        result.workout_sets = await supabaseUpsertNoUser('workout_sets', valid as unknown as Record<string, unknown>[])
+        for (const s of valid) knownSetIds.add(s.id)
       }
     }
+
+    // 4. Programs (no FKs)
     if (include('programs') && c.programs) {
       result.programs = await supabaseUpsert('programs', c.programs as unknown as Record<string, unknown>[], userId)
+      for (const p of c.programs) knownProgramIds.add(p.id)
       if (c.program_days) {
-        result.program_days = await supabaseUpsertNoUser('program_days', c.program_days as unknown as Record<string, unknown>[])
+        const valid = c.program_days.filter((d) => knownProgramIds.has(d.program_id))
+        result.program_days = await supabaseUpsertNoUser('program_days', valid as unknown as Record<string, unknown>[])
+        for (const d of valid) knownDayIds.add(d.id)
       }
       if (c.program_day_exercises) {
-        result.program_day_exercises = await supabaseUpsertNoUser('program_day_exercises', c.program_day_exercises as unknown as Record<string, unknown>[])
+        const valid = c.program_day_exercises.filter(
+          (de) => knownDayIds.has(de.program_day_id) && knownExerciseIds.has(de.exercise_id),
+        )
+        result.program_day_exercises = await supabaseUpsertNoUser('program_day_exercises', valid as unknown as Record<string, unknown>[])
       }
     }
+
+    // 5. Weekly plans (FK: exercise_id required, program_id nullable)
     if (include('weekly_plans') && c.weekly_plans) {
-      result.weekly_plans = await supabaseUpsert('planned_entries', c.weekly_plans as unknown as Record<string, unknown>[], userId)
+      const valid = c.weekly_plans.filter((e) => knownExerciseIds.has(e.exercise_id))
+      result.weekly_plans = await supabaseUpsert('planned_entries', valid as unknown as Record<string, unknown>[], userId)
     }
+
+    // 6. Personal records (FK: exercise_id required, set_id nullable)
     if (include('personal_records') && c.personal_records) {
-      result.personal_records = await supabaseUpsert('personal_records', c.personal_records as unknown as Record<string, unknown>[], userId)
+      const valid = c.personal_records.filter((r) => knownExerciseIds.has(r.exercise_id))
+      result.personal_records = await supabaseUpsert('personal_records', valid as unknown as Record<string, unknown>[], userId)
     }
+
+    // 7. Body measurements (no FKs beyond user_id)
     if (include('body_measurements') && c.body_measurements) {
       result.body_measurements = await supabaseUpsert('body_measurements', c.body_measurements as unknown as Record<string, unknown>[], userId)
     }
