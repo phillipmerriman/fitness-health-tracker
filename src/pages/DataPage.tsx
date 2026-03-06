@@ -46,9 +46,9 @@ export default function DataPage() {
     }
   }
 
-  function handleExport() {
+  async function handleExport() {
     if (!user || selectedCategories.length === 0) return
-    const data = buildExport(user.id, selectedCategories)
+    const data = await buildExport(user.id, selectedCategories)
     const filename = getExportFilename(selectedCategories)
     downloadJson(data, filename)
   }
@@ -77,11 +77,15 @@ export default function DataPage() {
     )
   }
 
-  function handleImport() {
+  async function handleImport() {
     if (!user || !importFile || importCategories.length === 0) return
-    const result = importData(user.id, importFile, importCategories)
-    setImportResult(result)
-    setImportFile(null)
+    try {
+      const result = await importData(user.id, importFile, importCategories)
+      setImportResult(result)
+      setImportFile(null)
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Import failed')
+    }
   }
 
   function handleCancelImport() {
