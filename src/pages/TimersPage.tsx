@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Trash2, GripVertical, Pencil, X, Clock } from 'lucide-react'
+import { Plus, Trash2, GripVertical, Pencil, X, Clock, Copy } from 'lucide-react'
 import useTimers, { type TimerWithIntervals } from '@/hooks/useTimers'
 import Button from '@/components/ui/Button'
 import Spinner from '@/components/ui/Spinner'
@@ -11,7 +11,7 @@ interface IntervalDraft {
 }
 
 function emptyInterval(): IntervalDraft {
-  return { name: '', minutes: 0, seconds: 30 }
+  return { name: '', minutes: 0, seconds: 0 }
 }
 
 function formatDuration(sec: number): string {
@@ -77,6 +77,15 @@ export default function TimersPage() {
     setIntervals((prev) => {
       const next = [...prev]
       ;[next[idx], next[target]] = [next[target], next[idx]]
+      return next
+    })
+  }
+
+  function duplicateInterval(idx: number) {
+    setIntervals((prev) => {
+      const clone = { ...prev[idx] }
+      const next = [...prev]
+      next.splice(idx + 1, 0, clone)
       return next
     })
   }
@@ -195,6 +204,14 @@ export default function TimersPage() {
                     />
                     <span className="text-xs text-surface-400">sec</span>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => duplicateInterval(idx)}
+                    className="rounded p-1 text-surface-300 hover:text-primary-500"
+                    title="Duplicate interval"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => removeInterval(idx)}

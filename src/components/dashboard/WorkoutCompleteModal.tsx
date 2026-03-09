@@ -105,7 +105,7 @@ export default function WorkoutCompleteModal({
       {totalVolume > 0 && (
         <div className="mt-4 rounded-lg bg-primary-50 px-4 py-2.5 text-center">
           <span className="font-display text-sm font-bold text-primary-700">
-            Total Volume: {totalVolume.toLocaleString()} {preferredUnit}
+            Total Weight Moved: {totalVolume.toLocaleString()} {preferredUnit}
           </span>
         </div>
       )}
