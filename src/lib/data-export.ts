@@ -426,7 +426,9 @@ const TABLE_COLUMNS: Record<string, string[]> = {
   programs: ['id', 'user_id', 'name', 'description', 'weeks', 'start_date', 'is_active', 'created_at', 'updated_at'],
   program_days: ['id', 'program_id', 'week_number', 'day_number', 'name', 'sort_order'],
   program_day_exercises: ['id', 'program_day_id', 'exercise_id', 'sort_order', 'target_sets', 'target_reps', 'target_weight', 'target_duration_sec', 'rest_seconds', 'notes'],
-  planned_entries: ['id', 'user_id', 'program_id', 'exercise_id', 'date', 'session', 'sort_order', 'sets', 'reps', 'rep_type', 'reps_right', 'weight', 'weight_unit', 'intensity', 'notes', 'created_at'],
+  planned_entries: ['id', 'user_id', 'program_id', 'exercise_id', 'date', 'session', 'sort_order', 'sets', 'reps', 'rep_type', 'reps_right', 'weight', 'weight_unit', 'intensity', 'notes', 'timer_id', 'created_at'],
+  timers: ['id', 'user_id', 'name', 'created_at', 'updated_at'],
+  timer_intervals: ['id', 'timer_id', 'name', 'duration_sec', 'sort_order'],
   personal_records: ['id', 'user_id', 'exercise_id', 'record_type', 'value', 'achieved_at', 'set_id', 'created_at'],
   body_measurements: ['id', 'user_id', 'measured_at', 'weight', 'body_fat_pct', 'notes', 'created_at'],
 }
@@ -449,7 +451,7 @@ function stripExtraColumns(table: string, rows: Record<string, unknown>[]): Reco
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** All fields across import data that hold an ID or FK reference. */
-const ID_FIELDS = ['id', 'user_id', 'exercise_id', 'template_id', 'session_id', 'program_id', 'program_day_id', 'set_id']
+const ID_FIELDS = ['id', 'user_id', 'exercise_id', 'template_id', 'session_id', 'program_id', 'program_day_id', 'set_id', 'timer_id']
 
 /**
  * Walk every row in every category of the import data and replace any invalid
@@ -663,12 +665,7 @@ export async function importData(userId: string, rawData: ExportData, selectedCa
     if (include('workout_templates') && c.workout_templates) {
       result.workout_templates = await supabaseUpsert('workout_templates', c.workout_templates as unknown as Record<string, unknown>[], userId)
       for (const t of c.workout_templates) knownTemplateIds.add(t.id)
-      for (const t of c.workout_templates) knownTemplateIds.add(t.id)
       if (c.workout_template_exercises) {
-        const valid = c.workout_template_exercises.filter(
-          (te) => knownTemplateIds.has(te.template_id) && knownExerciseIds.has(te.exercise_id),
-        )
-        result.workout_template_exercises = await supabaseUpsertNoUser('workout_template_exercises', valid as unknown as Record<string, unknown>[])
         const valid = c.workout_template_exercises.filter(
           (te) => knownTemplateIds.has(te.template_id) && knownExerciseIds.has(te.exercise_id),
         )
@@ -697,17 +694,12 @@ export async function importData(userId: string, rawData: ExportData, selectedCa
     if (include('programs') && c.programs) {
       result.programs = await supabaseUpsert('programs', c.programs as unknown as Record<string, unknown>[], userId)
       for (const p of c.programs) knownProgramIds.add(p.id)
-      for (const p of c.programs) knownProgramIds.add(p.id)
       if (c.program_days) {
         const validDays = c.program_days.filter((d) => knownProgramIds.has(d.program_id))
         result.program_days = await supabaseUpsertNoUser('program_days', validDays as unknown as Record<string, unknown>[])
         for (const d of validDays) knownDayIds.add(d.id)
       }
       if (c.program_day_exercises) {
-        const valid = c.program_day_exercises.filter(
-          (de) => knownDayIds.has(de.program_day_id) && knownExerciseIds.has(de.exercise_id),
-        )
-        result.program_day_exercises = await supabaseUpsertNoUser('program_day_exercises', valid as unknown as Record<string, unknown>[])
         const valid = c.program_day_exercises.filter(
           (de) => knownDayIds.has(de.program_day_id) && knownExerciseIds.has(de.exercise_id),
         )
