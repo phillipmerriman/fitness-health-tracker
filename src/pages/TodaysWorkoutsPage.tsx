@@ -21,12 +21,17 @@ export default function TodaysWorkoutsPage() {
   const { exercises, loading: exercisesLoading } = useExercises()
   const { timers } = useTimers()
   const { programs } = usePrograms()
-  const { create: createSession } = useWorkouts()
+  const { sessions: workoutSessions, create: createSession } = useWorkouts()
 
   const [dayOffset, setDayOffset] = useState(0)
   const [runningTimer, setRunningTimer] = useState<TimerWithIntervals | null>(null)
   const [completeModal, setCompleteModal] = useState<{ dayLabel: string; entries: PlannedEntry[] } | null>(null)
-  const [completedSessions, setCompletedSessions] = useState<Set<Session | 'all'>>(new Set())
+  const [localCompleted, setLocalCompleted] = useState<Set<Session | 'all'>>(new Set())
+
+  function navigateDay(offset: number | ((d: number) => number)) {
+    setDayOffset(offset)
+    setLocalCompleted(new Set())
+  }
 
   const viewDate = useMemo(() => addDays(new Date(), dayOffset), [dayOffset])
   const dateKey = format(viewDate, 'yyyy-MM-dd')
@@ -78,7 +83,27 @@ export default function TodaysWorkoutsPage() {
     return timers.find((t) => t.id === timerId)
   }
 
-  async function handleCompleteSession(sessionEntries: PlannedEntry[]) {
+  // Derive completed sessions from persisted workout sessions
+  const completedSessions = useMemo(() => {
+    const done = new Set<Session | 'all'>(localCompleted)
+    for (const ws of workoutSessions) {
+      const wsDate = ws.started_at.slice(0, 10)
+      if (wsDate !== dateKey || !ws.notes || !ws.completed_at) continue
+      const match = ws.notes.match(/^session:(.+)$/)
+      if (match) {
+        const val = match[1]
+        if (val === 'all') {
+          done.add('all')
+          SESSIONS.forEach((s) => done.add(s))
+        } else if (SESSIONS.includes(val as Session)) {
+          done.add(val as Session)
+        }
+      }
+    }
+    return done
+  }, [workoutSessions, dateKey, localCompleted])
+
+  async function handleCompleteSession(sessionEntries: PlannedEntry[], sessionTag: string) {
     const names = sessionEntries.map((e) => getExerciseName(e.exercise_id))
     const sessionName = names.length > 0 ? names.join(', ') : 'Workout'
     const totalWeight = sessionEntries.reduce((sum, entry) =>
@@ -88,19 +113,20 @@ export default function TodaysWorkoutsPage() {
       started_at: `${dateKey}T09:00:00.000Z`,
       completed_at: `${dateKey}T10:00:00.000Z`,
       total_weight_moved: totalWeight > 0 ? `${totalWeight.toLocaleString()} ${preferredUnit}` : null,
+      notes: `session:${sessionTag}`,
     })
     setCompleteModal({ dayLabel: format(viewDate, 'EEEE, MMM d'), entries: sessionEntries })
   }
 
   async function handleCompleteSessionGroup(session: Session, sessionEntries: PlannedEntry[]) {
-    await handleCompleteSession(sessionEntries)
-    setCompletedSessions((prev) => new Set(prev).add(session))
+    await handleCompleteSession(sessionEntries, session)
+    setLocalCompleted((prev) => new Set(prev).add(session))
   }
 
   async function handleCompleteAll() {
     if (dayEntries.length === 0) return
-    await handleCompleteSession(dayEntries)
-    setCompletedSessions((prev) => new Set([...prev, 'all', ...SESSIONS]))
+    await handleCompleteSession(dayEntries, 'all')
+    setLocalCompleted((prev) => new Set([...prev, 'all', ...SESSIONS]))
   }
 
   const dayLabel = today
@@ -131,21 +157,21 @@ export default function TodaysWorkoutsPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setDayOffset((d) => d - 1)}
+            onClick={() => navigateDay((d) => d - 1)}
             className="rounded-lg border border-surface-200 p-2 text-surface-500 hover:bg-surface-50"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           {!today && (
             <button
-              onClick={() => setDayOffset(0)}
+              onClick={() => navigateDay(0)}
               className="rounded-lg border border-surface-200 px-3 py-1.5 text-xs font-medium text-surface-600 hover:bg-surface-50"
             >
               Today
             </button>
           )}
           <button
-            onClick={() => setDayOffset((d) => d + 1)}
+            onClick={() => navigateDay((d) => d + 1)}
             className="rounded-lg border border-surface-200 p-2 text-surface-500 hover:bg-surface-50"
           >
             <ChevronRight className="h-4 w-4" />
