@@ -192,7 +192,7 @@ export default function TodaysWorkoutsPage() {
                     </p>
                     <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-surface-500">
                       {entry.sets != null && (
-                        <span>{entry.sets} sets</span>
+                        <span>{entry.sets} {entry.sets === 1 ? 'set' : 'sets'}</span>
                       )}
                       {entry.reps != null && (
                         <span>{formatReps(entry.rep_type, entry.reps, entry.reps_right)}</span>
