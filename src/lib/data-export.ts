@@ -506,6 +506,28 @@ function remapIds(data: ExportData): ExportData {
     return map.get(val)!
   }
 
+  /** Remap ID fields inside a JSON-encoded `notes` string (e.g. extras with timer_id). */
+  function remapNotesJson(notes: unknown): unknown {
+    if (typeof notes !== 'string' || !notes) return notes
+    try {
+      const parsed = JSON.parse(notes)
+      if (parsed && typeof parsed === 'object') {
+        let changed = false
+        for (const field of ID_FIELDS) {
+          if (field in parsed && parsed[field] != null) {
+            const remapped = remap(parsed[field])
+            if (remapped !== parsed[field]) {
+              parsed[field] = remapped
+              changed = true
+            }
+          }
+        }
+        return changed ? JSON.stringify(parsed) : notes
+      }
+    } catch { /* not valid JSON, return as-is */ }
+    return notes
+  }
+
   function processRows(rows: Record<string, unknown>[] | undefined): Record<string, unknown>[] | undefined {
     if (!rows) return rows
     return rows.map((row) => {
@@ -514,6 +536,10 @@ function remapIds(data: ExportData): ExportData {
         if (field in out && out[field] != null) {
           out[field] = remap(out[field])
         }
+      }
+      // Also remap IDs embedded in JSON notes fields
+      if ('notes' in out && typeof out.notes === 'string') {
+        out.notes = remapNotesJson(out.notes)
       }
       return out
     })
@@ -604,9 +630,15 @@ export async function importData(userId: string, rawData: ExportData, selectedCa
   const c = data.categories
 
   if (isDev) {
-    // Local-storage path (unchanged)
+    // Local-storage path
     if (include('exercises') && c.exercises) {
       result.exercises = upsertRows('exercises', c.exercises, userId)
+    }
+    if (include('timers') && c.timers) {
+      result.timers = upsertRows('timers', c.timers, userId)
+      if (c.timer_intervals) {
+        result.timer_intervals = upsertRowsNoUserId('timer_intervals', c.timer_intervals)
+      }
     }
     if (include('workout_templates') && c.workout_templates) {
       result.workout_templates = upsertRows('workout_templates', c.workout_templates, userId)
@@ -647,12 +679,6 @@ export async function importData(userId: string, rawData: ExportData, selectedCa
         JSON.stringify([...existingMap.values()]),
       )
       result.weekly_plans = c.weekly_plans.length
-    }
-    if (include('timers') && c.timers) {
-      result.timers = upsertRows('timers', c.timers, userId)
-      if (c.timer_intervals) {
-        result.timer_intervals = upsertRowsNoUserId('timer_intervals', c.timer_intervals)
-      }
     }
     if (include('personal_records') && c.personal_records) {
       result.personal_records = upsertRows('personal_records', c.personal_records, userId)
@@ -710,7 +736,49 @@ export async function importData(userId: string, rawData: ExportData, selectedCa
       }
     }
 
-    // 3. Templates
+    // 3. Timers (before templates/weekly plans that reference them via notes JSON or timer_id FK)
+    if (include('timers') && c.timers) {
+      result.timers = await supabaseUpsert('timers', c.timers as unknown as Record<string, unknown>[], userId)
+      for (const t of c.timers) knownTimerIds.add(t.id)
+      if (c.timer_intervals) {
+        const valid = c.timer_intervals.filter((i) => knownTimerIds.has(i.timer_id))
+        result.timer_intervals = await supabaseUpsertNoUser('timer_intervals', valid as unknown as Record<string, unknown>[])
+      }
+    } else if (c.timers?.length) {
+      // Auto-import timers referenced by other selected categories
+      const neededTimerIds = new Set<string>()
+      if (include('workout_templates') && c.workout_template_exercises) {
+        for (const te of c.workout_template_exercises) {
+          if (te.notes) {
+            try {
+              const extras = JSON.parse(te.notes)
+              if (extras?.timer_id) neededTimerIds.add(extras.timer_id)
+            } catch { /* ignore */ }
+          }
+        }
+      }
+      if (include('weekly_plans') && c.weekly_plans) {
+        for (const e of c.weekly_plans) {
+          if (e.timer_id) neededTimerIds.add(e.timer_id)
+        }
+      }
+      const missingTimers = c.timers.filter(
+        (t) => neededTimerIds.has(t.id) && !knownTimerIds.has(t.id),
+      )
+      if (missingTimers.length > 0) {
+        const added = await supabaseUpsert('timers', missingTimers as unknown as Record<string, unknown>[], userId)
+        result.timers = added
+        for (const t of missingTimers) knownTimerIds.add(t.id)
+        if (c.timer_intervals) {
+          const valid = c.timer_intervals.filter((i) => knownTimerIds.has(i.timer_id))
+          if (valid.length > 0) {
+            result.timer_intervals = await supabaseUpsertNoUser('timer_intervals', valid as unknown as Record<string, unknown>[])
+          }
+        }
+      }
+    }
+
+    // 4. Templates
     if (include('workout_templates') && c.workout_templates) {
       result.workout_templates = await supabaseUpsert('workout_templates', c.workout_templates as unknown as Record<string, unknown>[], userId)
       for (const t of c.workout_templates) knownTemplateIds.add(t.id)
@@ -722,7 +790,7 @@ export async function importData(userId: string, rawData: ExportData, selectedCa
       }
     }
 
-    // 4. Sessions
+    // 5. Sessions
     if (include('workout_sessions') && c.workout_sessions) {
       // Null out template_id if the referenced template doesn't exist
       const sessions = c.workout_sessions.map((s) => ({
@@ -753,16 +821,6 @@ export async function importData(userId: string, rawData: ExportData, selectedCa
           (de) => knownDayIds.has(de.program_day_id) && knownExerciseIds.has(de.exercise_id),
         )
         result.program_day_exercises = await supabaseUpsertNoUser('program_day_exercises', valid as unknown as Record<string, unknown>[])
-      }
-    }
-
-    // 6. Timers
-    if (include('timers') && c.timers) {
-      result.timers = await supabaseUpsert('timers', c.timers as unknown as Record<string, unknown>[], userId)
-      for (const t of c.timers) knownTimerIds.add(t.id)
-      if (c.timer_intervals) {
-        const valid = c.timer_intervals.filter((i) => knownTimerIds.has(i.timer_id))
-        result.timer_intervals = await supabaseUpsertNoUser('timer_intervals', valid as unknown as Record<string, unknown>[])
       }
     }
 
