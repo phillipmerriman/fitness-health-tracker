@@ -67,10 +67,10 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <Link to="/workouts">
+        <Link to="/workouts/today">
           <Button size="sm">
             <Plus className="h-4 w-4" />
-            Start Workout
+            Get After It
           </Button>
         </Link>
       </div>

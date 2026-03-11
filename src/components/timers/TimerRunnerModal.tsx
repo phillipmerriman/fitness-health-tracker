@@ -15,10 +15,12 @@ function formatCountdown(sec: number): string {
 
 export default function TimerRunnerModal({ timer, onClose }: TimerRunnerModalProps) {
   const intervals = timer.intervals
+  const pauseBetween = timer.pause_between_intervals ?? false
   const [currentIdx, setCurrentIdx] = useState(0)
   const [remaining, setRemaining] = useState(intervals[0]?.duration_sec ?? 0)
   const [running, setRunning] = useState(false)
   const [finished, setFinished] = useState(false)
+  const [waitingResume, setWaitingResume] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const audioRef = useRef<AudioContext | null>(null)
 
@@ -47,16 +49,24 @@ export default function TimerRunnerModal({ timer, onClose }: TimerRunnerModalPro
   const advanceInterval = useCallback(() => {
     if (currentIdx < totalIntervals - 1) {
       const nextIdx = currentIdx + 1
-      setCurrentIdx(nextIdx)
-      setRemaining(intervals[nextIdx].duration_sec)
       playBeep()
+      if (pauseBetween) {
+        // Pause and wait for user to resume
+        setRunning(false)
+        setWaitingResume(true)
+        setCurrentIdx(nextIdx)
+        setRemaining(intervals[nextIdx].duration_sec)
+      } else {
+        setCurrentIdx(nextIdx)
+        setRemaining(intervals[nextIdx].duration_sec)
+      }
     } else {
       // All intervals done
       setRunning(false)
       setFinished(true)
       playBeep()
     }
-  }, [currentIdx, totalIntervals, intervals, playBeep])
+  }, [currentIdx, totalIntervals, intervals, playBeep, pauseBetween])
 
   // Countdown tick
   useEffect(() => {
@@ -92,7 +102,11 @@ export default function TimerRunnerModal({ timer, onClose }: TimerRunnerModalPro
       if (e.key === 'Escape') onClose()
       if (e.key === ' ') {
         e.preventDefault()
-        if (!finished) setRunning((r) => !r)
+        if (waitingResume) {
+          handleResume()
+        } else if (!finished) {
+          setRunning((r) => !r)
+        }
       }
     }
     document.addEventListener('keydown', handleKey)
@@ -100,13 +114,19 @@ export default function TimerRunnerModal({ timer, onClose }: TimerRunnerModalPro
   }, [onClose, finished])
 
   function handlePlayPause() {
-    if (finished) return
+    if (finished || waitingResume) return
     setRunning((r) => !r)
+  }
+
+  function handleResume() {
+    setWaitingResume(false)
+    setRunning(true)
   }
 
   function handleReset() {
     setRunning(false)
     setFinished(false)
+    setWaitingResume(false)
     setCurrentIdx(0)
     setRemaining(intervals[0]?.duration_sec ?? 0)
   }
@@ -152,7 +172,7 @@ export default function TimerRunnerModal({ timer, onClose }: TimerRunnerModalPro
 
           {/* Current interval name */}
           <p className="mb-2 text-center text-sm font-medium text-primary-600">
-            {finished ? 'Complete!' : current?.name ?? 'Interval'}
+            {finished ? 'Complete!' : waitingResume ? `Up next: ${current?.name ?? 'Interval'}` : current?.name ?? 'Interval'}
           </p>
 
           {/* Countdown */}
@@ -171,36 +191,65 @@ export default function TimerRunnerModal({ timer, onClose }: TimerRunnerModalPro
           </div>
 
           {/* Controls */}
-          <div className="mb-6 flex items-center justify-center gap-4">
-            <button
-              onClick={handleReset}
-              className="rounded-full p-3 text-surface-400 hover:bg-surface-100 hover:text-surface-600"
-              title="Reset"
-            >
-              <RotateCcw className="h-5 w-5" />
-            </button>
-            <button
-              onClick={handlePlayPause}
-              className={`rounded-full p-4 text-white shadow-lg transition-colors ${
-                finished
-                  ? 'bg-surface-300 cursor-not-allowed'
-                  : running
-                    ? 'bg-amber-500 hover:bg-amber-600'
-                    : 'bg-primary-600 hover:bg-primary-700'
-              }`}
-              disabled={finished}
-            >
-              {running ? <Pause className="h-7 w-7" /> : <Play className="h-7 w-7" />}
-            </button>
-            <button
-              onClick={handleSkip}
-              disabled={finished}
-              className="rounded-full p-3 text-surface-400 hover:bg-surface-100 hover:text-surface-600 disabled:opacity-30"
-              title="Skip interval"
-            >
-              <SkipForward className="h-5 w-5" />
-            </button>
-          </div>
+          {waitingResume ? (
+            <div className="mb-6 flex flex-col items-center gap-3">
+              <p className="text-sm font-medium text-amber-600">Interval complete — ready for next?</p>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleReset}
+                  className="rounded-full p-3 text-surface-400 hover:bg-surface-100 hover:text-surface-600"
+                  title="Reset"
+                >
+                  <RotateCcw className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={handleResume}
+                  className="rounded-full bg-primary-600 p-4 text-white shadow-lg hover:bg-primary-700"
+                >
+                  <Play className="h-7 w-7" />
+                </button>
+                <button
+                  onClick={handleSkip}
+                  disabled={finished}
+                  className="rounded-full p-3 text-surface-400 hover:bg-surface-100 hover:text-surface-600 disabled:opacity-30"
+                  title="Skip interval"
+                >
+                  <SkipForward className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-6 flex items-center justify-center gap-4">
+              <button
+                onClick={handleReset}
+                className="rounded-full p-3 text-surface-400 hover:bg-surface-100 hover:text-surface-600"
+                title="Reset"
+              >
+                <RotateCcw className="h-5 w-5" />
+              </button>
+              <button
+                onClick={handlePlayPause}
+                className={`rounded-full p-4 text-white shadow-lg transition-colors ${
+                  finished
+                    ? 'bg-surface-300 cursor-not-allowed'
+                    : running
+                      ? 'bg-amber-500 hover:bg-amber-600'
+                      : 'bg-primary-600 hover:bg-primary-700'
+                }`}
+                disabled={finished}
+              >
+                {running ? <Pause className="h-7 w-7" /> : <Play className="h-7 w-7" />}
+              </button>
+              <button
+                onClick={handleSkip}
+                disabled={finished}
+                className="rounded-full p-3 text-surface-400 hover:bg-surface-100 hover:text-surface-600 disabled:opacity-30"
+                title="Skip interval"
+              >
+                <SkipForward className="h-5 w-5" />
+              </button>
+            </div>
+          )}
 
           {/* Overall progress */}
           <div className="h-1.5 overflow-hidden rounded-full bg-surface-100">

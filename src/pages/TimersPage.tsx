@@ -36,18 +36,21 @@ export default function TimersPage() {
   // Editor state
   const [editing, setEditing] = useState<string | null>(null) // timer id or 'new'
   const [name, setName] = useState('')
+  const [pauseBetween, setPauseBetween] = useState(false)
   const [intervals, setIntervals] = useState<IntervalDraft[]>([emptyInterval()])
   const [saving, setSaving] = useState(false)
 
   function startCreate() {
     setEditing('new')
     setName('')
+    setPauseBetween(false)
     setIntervals([emptyInterval()])
   }
 
   function startEdit(timer: TimerWithIntervals) {
     setEditing(timer.id)
     setName(timer.name)
+    setPauseBetween(timer.pause_between_intervals ?? false)
     setIntervals(
       timer.intervals.map((iv) => ({
         name: iv.name,
@@ -106,9 +109,9 @@ export default function TimersPage() {
       if (ivs.length === 0) return
 
       if (editing === 'new') {
-        await create(name.trim(), ivs)
+        await create(name.trim(), ivs, pauseBetween)
       } else if (editing) {
-        await update(editing, name.trim(), ivs)
+        await update(editing, name.trim(), ivs, pauseBetween)
       }
       setEditing(null)
     } finally {
@@ -236,6 +239,22 @@ export default function TimersPage() {
             </button>
           </div>
 
+          {/* Pause between intervals toggle */}
+          <div className="mb-4">
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={pauseBetween}
+                onChange={(e) => setPauseBetween(e.target.checked)}
+                className="h-4 w-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span className="text-sm font-medium text-surface-700">Pause between intervals</span>
+            </label>
+            <p className="ml-6 mt-0.5 text-xs text-surface-400">
+              When enabled, the timer will pause after each interval ends. You must click resume to start the next interval.
+            </p>
+          </div>
+
           {/* Save */}
           <div className="flex items-center gap-3">
             <Button onClick={handleSave} disabled={saving || !name.trim()}>
@@ -291,6 +310,7 @@ export default function TimersPage() {
             <div className="mt-3 flex items-center justify-between border-t border-surface-100 pt-2">
               <span className="text-xs text-surface-400">
                 {timer.intervals.length} interval{timer.intervals.length !== 1 ? 's' : ''} &middot; {formatDuration(totalDuration(timer.intervals))} total
+                {timer.pause_between_intervals && ' \u00b7 Pause'}
               </span>
               <button
                 onClick={() => setRunningTimer(timer)}

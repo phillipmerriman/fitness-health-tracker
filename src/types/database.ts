@@ -376,6 +376,7 @@ export interface Database {
           id: string
           user_id: string
           name: string
+          pause_between_intervals: boolean
           created_at: string
           updated_at: string
         }
@@ -383,11 +384,13 @@ export interface Database {
           id?: string
           user_id: string
           name: string
+          pause_between_intervals?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: {
           name?: string
+          pause_between_intervals?: boolean
           updated_at?: string
         }
         Relationships: []

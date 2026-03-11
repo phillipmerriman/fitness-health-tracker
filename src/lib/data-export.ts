@@ -427,7 +427,7 @@ const TABLE_COLUMNS: Record<string, string[]> = {
   program_days: ['id', 'program_id', 'week_number', 'day_number', 'name', 'sort_order'],
   program_day_exercises: ['id', 'program_day_id', 'exercise_id', 'sort_order', 'target_sets', 'target_reps', 'target_weight', 'target_duration_sec', 'rest_seconds', 'notes'],
   planned_entries: ['id', 'user_id', 'program_id', 'exercise_id', 'date', 'session', 'sort_order', 'sets', 'reps', 'rep_type', 'reps_right', 'weight', 'weight_unit', 'intensity', 'notes', 'timer_id', 'created_at'],
-  timers: ['id', 'user_id', 'name', 'created_at', 'updated_at'],
+  timers: ['id', 'user_id', 'name', 'pause_between_intervals', 'created_at', 'updated_at'],
   timer_intervals: ['id', 'timer_id', 'name', 'duration_sec', 'sort_order'],
   personal_records: ['id', 'user_id', 'exercise_id', 'record_type', 'value', 'achieved_at', 'set_id', 'created_at'],
   body_measurements: ['id', 'user_id', 'measured_at', 'weight', 'body_fat_pct', 'notes', 'created_at'],

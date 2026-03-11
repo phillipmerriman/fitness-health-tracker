@@ -56,7 +56,7 @@ export default function useTimers() {
 
   useEffect(() => { fetch() }, [fetch])
 
-  async function create(name: string, intervals: { name: string; duration_sec: number }[]): Promise<TimerWithIntervals> {
+  async function create(name: string, intervals: { name: string; duration_sec: number }[], pauseBetween = false): Promise<TimerWithIntervals> {
     if (!user) throw new Error('Not authenticated')
     const now = new Date().toISOString()
 
@@ -65,6 +65,7 @@ export default function useTimers() {
         id: crypto.randomUUID(),
         user_id: user.id,
         name,
+        pause_between_intervals: pauseBetween,
         created_at: now,
         updated_at: now,
       }
@@ -84,7 +85,7 @@ export default function useTimers() {
 
     const { data: timer, error } = await supabase
       .from('timers')
-      .insert({ user_id: user.id, name })
+      .insert({ user_id: user.id, name, pause_between_intervals: pauseBetween })
       .select()
       .single()
     if (error) throw error
@@ -110,11 +111,12 @@ export default function useTimers() {
     id: string,
     name: string,
     intervals: { name: string; duration_sec: number }[],
+    pauseBetween = false,
   ): Promise<TimerWithIntervals> {
     if (!user) throw new Error('Not authenticated')
 
     if (isDev) {
-      const updated = localDb.update('timers', id, { name })
+      const updated = localDb.update('timers', id, { name, pause_between_intervals: pauseBetween })
       if (!updated) throw new Error('Timer not found')
       // Replace all intervals
       const allIntervals = localDb.getAll('timer_intervals').filter((i) => i.timer_id !== id)
@@ -133,7 +135,7 @@ export default function useTimers() {
 
     const { data: timer, error } = await supabase
       .from('timers')
-      .update({ name })
+      .update({ name, pause_between_intervals: pauseBetween })
       .eq('id', id)
       .select()
       .single()
