@@ -112,8 +112,9 @@ export default function EntryDetailEditor({
         handleSave()
       }
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    // Use mouseup so native <select> onChange fires before we save & close
+    document.addEventListener('mouseup', handleClickOutside)
+    return () => document.removeEventListener('mouseup', handleClickOutside)
   })
 
   const inputClass =
@@ -242,7 +243,7 @@ export default function EntryDetailEditor({
           </>
         ) : (
           <div>
-            <label className="text-[10px] font-medium text-surface-500">{repType === 'left_right' ? 'Reps (Left)' : 'Reps'}</label>
+            <label className="text-[10px] font-medium text-surface-500">{repType === 'left_right' || repType === 'left_right_per_minute' ? 'Reps (Left)' : 'Reps'}</label>
             <input
               type="number"
               min={1}
@@ -254,8 +255,8 @@ export default function EntryDetailEditor({
           </div>
         )}
 
-        {/* Reps Right — only for left_right */}
-        {repType === 'left_right' && (
+        {/* Reps Right — only for left_right variants */}
+        {(repType === 'left_right' || repType === 'left_right_per_minute') && (
           <div>
             <label className="text-[10px] font-medium text-surface-500">Reps (Right)</label>
             <input

@@ -302,7 +302,7 @@ export default function PlannerDayColumn({
                                 )}
                                 {entry.sets != null && <p>Sets: {entry.sets}</p>}
                                 {repsDisplay && (
-                                  <p>{entry.rep_type === 'time' ? 'Time: ' : entry.rep_type === 'reps_per_minute' ? '' : 'Reps: '}{repsDisplay}</p>
+                                  <p>{entry.rep_type === 'time' ? 'Time: ' : entry.rep_type.endsWith('_per_minute') ? '' : 'Reps: '}{repsDisplay}</p>
                                 )}
                                 {(entry.weight_unit === 'bodyweight' || entry.weight != null) && (
                                   <p>{formatWeightWithConversion(entry.weight, entry.weight_unit, preferredUnit)}</p>
