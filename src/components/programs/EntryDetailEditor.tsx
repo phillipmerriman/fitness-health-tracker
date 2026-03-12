@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import type { PlannedEntry, PlannedEntryUpdate, Session } from '@/hooks/useWeeklyPlan'
 import { SESSIONS, SESSION_LABELS } from '@/hooks/useWeeklyPlan'
 import type { Exercise } from '@/types/database'
+import type { TimerWithIntervals } from '@/hooks/useTimers'
 import type { RepType, WeightUnit } from '@/types/common'
 import { REP_TYPE_OPTIONS, WEIGHT_UNIT_OPTIONS } from '@/types/common'
 
@@ -10,6 +11,7 @@ interface EntryDetailEditorProps {
   entry: PlannedEntry
   exerciseName?: string
   exercises?: Exercise[]
+  timers?: TimerWithIntervals[]
   onUpdate: (id: string, values: PlannedEntryUpdate) => void
   onClose: () => void
 }
@@ -18,6 +20,7 @@ export default function EntryDetailEditor({
   entry,
   exerciseName,
   exercises,
+  timers,
   onUpdate,
   onClose,
 }: EntryDetailEditorProps) {
@@ -31,6 +34,7 @@ export default function EntryDetailEditor({
   const [weightUnit, setWeightUnit] = useState<WeightUnit>(entry.weight_unit)
   const [intensity, setIntensity] = useState<'light' | 'heavy' | null>(entry.intensity ?? null)
   const [notes, setNotes] = useState(entry.notes ?? '')
+  const [timerId, setTimerId] = useState<string | null>(entry.timer_id ?? null)
 
   // Time fields (derived from reps stored as total seconds)
   const [timeMin, setTimeMin] = useState(() =>
@@ -71,10 +75,13 @@ export default function EntryDetailEditor({
     setPos({ top, left })
   }, [])
 
-  // Reposition once on mount, then again after first render so ref.current has actual height
+  // Reposition after mount once the popup has rendered and has actual height
   useEffect(() => {
-    reposition()
-    requestAnimationFrame(reposition)
+    requestAnimationFrame(() => {
+      reposition()
+      // Second pass in case height changed after first position set
+      requestAnimationFrame(reposition)
+    })
   }, [reposition])
 
   function handleSave() {
@@ -94,6 +101,7 @@ export default function EntryDetailEditor({
       weight_unit: weightUnit,
       intensity,
       notes: notes.trim() || null,
+      timer_id: timerId,
     })
     onClose()
   }
@@ -258,6 +266,23 @@ export default function EntryDetailEditor({
               className={inputClass}
               placeholder="Same as left"
             />
+          </div>
+        )}
+
+        {/* Timer */}
+        {timers && timers.length > 0 && (
+          <div>
+            <label className="text-[10px] font-medium text-surface-500">Timer</label>
+            <select
+              value={timerId ?? ''}
+              onChange={(e) => setTimerId(e.target.value || null)}
+              className={inputClass}
+            >
+              <option value="">None</option>
+              {timers.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
           </div>
         )}
 

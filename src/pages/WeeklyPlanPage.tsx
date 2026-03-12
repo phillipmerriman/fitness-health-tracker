@@ -8,6 +8,7 @@ import type { PlannedEntry, Session } from '@/hooks/useWeeklyPlan'
 import useExercises from '@/hooks/useExercises'
 import usePrograms from '@/hooks/usePrograms'
 import useWorkoutTemplates from '@/hooks/useWorkoutTemplates'
+import useTimers from '@/hooks/useTimers'
 import type { ExerciseType, ExerciseRate, MuscleGroup, Equipment } from '@/types/common'
 import { getExerciseColorClasses } from '@/types/common'
 import ExerciseForm from '@/components/exercises/ExerciseForm'
@@ -33,6 +34,7 @@ export default function WeeklyPlanPage() {
   const { programs, loading: programsLoading } = usePrograms()
   const { exercises, loading: exercisesLoading, create: createExercise } = useExercises()
   const { templates, getExercisesForTemplate, saveDay, remove: removeTemplate, parseExtras } = useWorkoutTemplates()
+  const { timers } = useTimers()
 
   const program = programId ? programs.find((p) => p.id === programId) : null
   const totalWeeks = program?.weeks ?? 1
@@ -55,6 +57,7 @@ export default function WeeklyPlanPage() {
     getEntriesForDate,
     getEntriesForDateSession,
     addEntry,
+    addEntries,
     updateEntry,
     removeEntry,
     moveEntry,
@@ -190,17 +193,22 @@ export default function WeeklyPlanPage() {
 
   function handleTemplateDrop(dateKey: string, templateId: string, session: Session) {
     const exercises = getExercisesForTemplate(templateId)
-    for (const tex of exercises) {
+    const items = exercises.map((tex) => {
       const extras = parseExtras(tex.notes)
-      addEntry(dateKey, tex.exercise_id, {
-        sets: tex.target_sets,
-        reps: extras.rep_type === 'time' ? tex.target_duration_sec : tex.target_reps,
-        rep_type: extras.rep_type,
-        reps_right: extras.reps_right,
-        weight: tex.target_weight,
-        weight_unit: extras.weight_unit,
-      }, session)
-    }
+      return {
+        exerciseId: tex.exercise_id,
+        presets: {
+          sets: tex.target_sets,
+          reps: extras.rep_type === 'time' ? tex.target_duration_sec : tex.target_reps,
+          rep_type: extras.rep_type,
+          reps_right: extras.reps_right,
+          weight: tex.target_weight,
+          weight_unit: extras.weight_unit,
+          timer_id: extras.timer_id,
+        },
+      }
+    })
+    addEntries(dateKey, items, session)
   }
 
   function handleDragEnd() {
@@ -406,6 +414,7 @@ export default function WeeklyPlanPage() {
                 day={day}
                 dateKey={dateKey}
                 exercises={exercises}
+                timers={timers}
                 preferredUnit={preferredUnit}
                 getEntriesForDate={getEntriesForDate}
                 getEntriesForDateSession={getEntriesForDateSession}

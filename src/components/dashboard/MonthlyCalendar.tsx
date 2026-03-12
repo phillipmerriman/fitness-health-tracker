@@ -13,7 +13,7 @@ import {
   addMonths,
   subMonths,
 } from 'date-fns'
-import { ChevronLeft, ChevronRight, Check, Undo2, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, Undo2 } from 'lucide-react'
 import { loadUserEntries, SESSIONS, SESSION_LABELS } from '@/hooks/useWeeklyPlan'
 import type { PlannedEntry } from '@/hooks/useWeeklyPlan'
 import useExercises from '@/hooks/useExercises'
@@ -34,7 +34,7 @@ interface MonthlyCalendarProps {
   onDeleteSession?: (id: string) => Promise<unknown>
 }
 
-export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSession, onCreateSession, onDeleteSession }: MonthlyCalendarProps) {
+export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSession, onCreateSession, onDeleteSession: _onDeleteSession }: MonthlyCalendarProps) {
   const { user } = useAuth()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
@@ -69,6 +69,11 @@ export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSessi
     return sessions.some(
       (s) => isSameDay(new Date(s.started_at), day) && s.completed_at,
     )
+  }
+
+  function allCompleted(day: Date) {
+    const daySessions = sessions.filter((s) => isSameDay(new Date(s.started_at), day))
+    return daySessions.length > 0 && daySessions.every((s) => s.completed_at)
   }
 
   function isPlanned(day: Date) {
@@ -110,19 +115,29 @@ export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSessi
   }
 
   async function handleMarkDayComplete(day: Date) {
-    if (!onCreateSession) return
     const planned = getPlannedForDay(day)
-    const names = planned.map((e) => getExerciseName(e.exercise_id))
-    const sessionName = names.length > 0 ? names.join(', ') : 'Workout'
-    const dayStr = format(day, 'yyyy-MM-dd')
-    const totalWeight = planned.reduce((sum, entry) =>
-      sum + calcEntryVolume(entry.sets, entry.reps, entry.rep_type, entry.reps_right, entry.weight, entry.weight_unit, preferredUnit), 0)
-    await onCreateSession({
-      name: sessionName,
-      started_at: `${dayStr}T09:00:00.000Z`,
-      completed_at: `${dayStr}T10:00:00.000Z`,
-      total_weight_moved: totalWeight > 0 ? `${totalWeight.toLocaleString()} ${preferredUnit}` : null,
-    })
+
+    // Re-complete any undone sessions first
+    const undone = getSessionsForDay(day).filter((s) => !s.completed_at)
+    if (undone.length > 0 && onUpdateSession) {
+      for (const s of undone) {
+        await onUpdateSession(s.id, { completed_at: new Date().toISOString() })
+      }
+    } else if (onCreateSession) {
+      const names = planned.map((e) => getExerciseName(e.exercise_id))
+      const sessionName = names.length > 0 ? names.join(', ') : 'Workout'
+      const dayStr = format(day, 'yyyy-MM-dd')
+      const totalWeight = planned.reduce((sum, entry) =>
+        sum + calcEntryVolume(entry.sets, entry.reps, entry.rep_type, entry.reps_right, entry.weight, entry.weight_unit, preferredUnit), 0)
+      await onCreateSession({
+        name: sessionName,
+        started_at: `${dayStr}T09:00:00.000Z`,
+        completed_at: `${dayStr}T10:00:00.000Z`,
+        total_weight_moved: totalWeight > 0 ? `${totalWeight.toLocaleString()} ${preferredUnit}` : null,
+        notes: 'session:all',
+      })
+    }
+
     setSelectedDay(null)
     setCompleteModal({ dayLabel: format(day, 'EEEE, MMM d'), entries: planned })
   }
@@ -237,11 +252,11 @@ export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSessi
           <p className="py-4 text-center text-sm text-surface-400">No workouts on this day</p>
         ) : (
           <div className="space-y-4">
-            {/* Workout sessions */}
-            {daySessions.length > 0 && (
+            {/* Workout sessions — only show completed ones */}
+            {daySessions.some((s) => s.completed_at) && (
               <div className="space-y-2">
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-surface-500">Workouts</h4>
-                {daySessions.map((session) => (
+                {daySessions.filter((s) => s.completed_at).map((session) => (
                   <div
                     key={session.id}
                     className="flex items-center justify-between rounded-lg border border-surface-200 p-3"
@@ -250,9 +265,7 @@ export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSessi
                       <p className="font-medium text-surface-900">{session.name}</p>
                       <p className="mt-0.5 text-xs text-surface-400">
                         Started {format(new Date(session.started_at), 'h:mm a')}
-                        {session.completed_at && (
-                          <> — Completed {format(new Date(session.completed_at), 'h:mm a')}</>
-                        )}
+                        — Completed {format(new Date(session.completed_at!), 'h:mm a')}
                       </p>
                       {session.total_weight_moved && (
                         <p className="mt-0.5 text-xs font-semibold text-primary-600">
@@ -261,29 +274,14 @@ export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSessi
                       )}
                     </div>
                     <div className="ml-3 flex items-center gap-2">
-                      <Badge variant={session.completed_at ? 'primary' : 'warning'}>
-                        {session.completed_at ? 'Completed' : 'In Progress'}
-                      </Badge>
-                      {onUpdateSession && (session.completed_at || !isFutureDay) && (
-                        <Button
-                          size="sm"
-                          variant={session.completed_at ? 'ghost' : 'primary'}
-                          onClick={() => handleToggleComplete(session)}
-                        >
-                          {session.completed_at ? (
-                            <><Undo2 className="h-3.5 w-3.5" /> Undo</>
-                          ) : (
-                            <><Check className="h-3.5 w-3.5" /> Complete</>
-                          )}
-                        </Button>
-                      )}
-                      {onDeleteSession && (
+                      <Badge variant="primary">Completed</Badge>
+                      {onUpdateSession && (
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => onDeleteSession(session.id)}
+                          onClick={() => handleToggleComplete(session)}
                         >
-                          <Trash2 className="h-3.5 w-3.5 text-danger-500" />
+                          <Undo2 className="h-3.5 w-3.5" /> Undo
                         </Button>
                       )}
                     </div>
@@ -377,16 +375,18 @@ export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSessi
                     </div>
                   ) : null
                 })()}
-                {onCreateSession && selectedDay && !hasWorkout(selectedDay) && !isFutureDay && (
-                  <Button
-                    size="sm"
-                    onClick={() => handleMarkDayComplete(selectedDay)}
-                    className="mt-2 w-full"
-                  >
-                    <Check className="h-3.5 w-3.5" /> Mark Day Complete
-                  </Button>
-                )}
               </div>
+            )}
+
+            {/* Mark Day Complete button */}
+            {(onCreateSession || onUpdateSession) && selectedDay && !allCompleted(selectedDay) && !isFutureDay && (
+              <Button
+                size="sm"
+                onClick={() => handleMarkDayComplete(selectedDay)}
+                className="mt-2 w-full"
+              >
+                <Check className="h-3.5 w-3.5" /> Mark Day Complete
+              </Button>
             )}
           </div>
         )}

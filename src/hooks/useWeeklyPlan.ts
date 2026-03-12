@@ -35,9 +35,10 @@ export interface PlannedEntry {
   weight_unit: WeightUnit
   intensity: 'light' | 'heavy' | null
   notes: string | null
+  timer_id: string | null
 }
 
-export type PlannedEntryUpdate = Partial<Pick<PlannedEntry, 'exercise_id' | 'sets' | 'reps' | 'rep_type' | 'reps_right' | 'weight' | 'weight_unit' | 'intensity' | 'notes' | 'session'>>
+export type PlannedEntryUpdate = Partial<Pick<PlannedEntry, 'exercise_id' | 'sets' | 'reps' | 'rep_type' | 'reps_right' | 'weight' | 'weight_unit' | 'intensity' | 'notes' | 'session' | 'timer_id'>>
 
 const STORAGE_KEY = 'fittrack:weekly_plan'
 
@@ -61,6 +62,7 @@ function loadAll(): PlannedEntry[] {
     weight_unit: e.weight_unit ?? 'lbs',
     intensity: e.intensity ?? null,
     notes: e.notes ?? null,
+    timer_id: (e as Record<string, unknown>).timer_id as string | null ?? null,
   }))
 }
 
@@ -167,6 +169,7 @@ export default function useWeeklyPlan(options: UseWeeklyPlanOptions = {}) {
       weight_unit: presets?.weight_unit ?? 'lbs',
       intensity: presets?.intensity ?? null,
       notes: presets?.notes ?? null,
+      timer_id: presets?.timer_id ?? null,
     }
 
     if (isDev) {
@@ -190,10 +193,63 @@ export default function useWeeklyPlan(options: UseWeeklyPlanOptions = {}) {
         weight_unit: entry.weight_unit,
         intensity: entry.intensity,
         notes: entry.notes,
+        timer_id: entry.timer_id,
       })
       if (error) throw error
     }
     setEntries((prev) => [...prev, entry])
+  }
+
+  async function addEntries(dateKey: string, items: { exerciseId: string; presets?: PlannedEntryUpdate }[], session: Session = 'morning') {
+    if (!user || items.length === 0) return
+    const existing = entries.filter((e) => e.date === dateKey && e.session === session)
+    const newEntries: PlannedEntry[] = items.map((item, i) => ({
+      id: crypto.randomUUID(),
+      user_id: user.id,
+      program_id: programId,
+      date: dateKey,
+      session,
+      exercise_id: item.exerciseId,
+      sort_order: existing.length + i,
+      sets: item.presets?.sets ?? 3,
+      reps: item.presets?.reps ?? 10,
+      rep_type: item.presets?.rep_type ?? 'single',
+      reps_right: item.presets?.reps_right ?? null,
+      weight: item.presets?.weight ?? null,
+      weight_unit: item.presets?.weight_unit ?? 'lbs',
+      intensity: item.presets?.intensity ?? null,
+      notes: item.presets?.notes ?? null,
+      timer_id: item.presets?.timer_id ?? null,
+    }))
+
+    if (isDev) {
+      const all = loadAll()
+      all.push(...newEntries)
+      saveAll(all)
+    } else {
+      const { error } = await supabase.from('planned_entries').insert(
+        newEntries.map((e) => ({
+          id: e.id,
+          user_id: e.user_id,
+          program_id: e.program_id,
+          date: e.date,
+          session: e.session,
+          exercise_id: e.exercise_id,
+          sort_order: e.sort_order,
+          sets: e.sets,
+          reps: e.reps,
+          rep_type: e.rep_type,
+          reps_right: e.reps_right,
+          weight: e.weight,
+          weight_unit: e.weight_unit,
+          intensity: e.intensity,
+          notes: e.notes,
+          timer_id: e.timer_id,
+        })),
+      )
+      if (error) throw error
+    }
+    setEntries((prev) => [...prev, ...newEntries])
   }
 
   async function updateEntry(id: string, values: PlannedEntryUpdate) {
@@ -324,6 +380,7 @@ export default function useWeeklyPlan(options: UseWeeklyPlanOptions = {}) {
     getEntriesForDate,
     getEntriesForDateSession,
     addEntry,
+    addEntries,
     updateEntry,
     removeEntry,
     moveEntry,
@@ -439,6 +496,7 @@ export async function pasteWeekEntries(
           weight_unit: src.weight_unit,
           intensity: src.intensity,
           notes: src.notes,
+          timer_id: (src as PlannedEntry).timer_id ?? null,
         })
       }
     }
@@ -490,6 +548,7 @@ export async function pasteWeekEntries(
         weight_unit: src.weight_unit,
         intensity: src.intensity,
         notes: src.notes,
+        timer_id: (src as PlannedEntry).timer_id ?? null,
       })
     }
   }
