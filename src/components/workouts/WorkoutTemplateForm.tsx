@@ -68,18 +68,31 @@ export default function WorkoutTemplateForm({
     e.name.toLowerCase().includes(search.toLowerCase()),
   )
 
+  function getDefaults(exerciseId: string) {
+    const ex = exercises.find((e) => e.id === exerciseId)
+    return {
+      sets: ex?.default_sets ?? 3,
+      reps: ex?.default_reps ?? 10,
+      rep_type: (ex?.default_rep_type as RepType) ?? 'single',
+      weight: ex?.default_weight ?? null,
+      weight_unit: (ex?.default_weight_unit as WeightUnit) ?? 'lbs',
+      intensity: ex?.default_intensity ?? null,
+    }
+  }
+
   function addExercise(exerciseId: string) {
+    const defaults = getDefaults(exerciseId)
     const entry: TemplateFormEntry = {
       id: crypto.randomUUID(),
       exercise_id: exerciseId,
       sort_order: entries.length,
-      sets: 3,
-      reps: 10,
-      rep_type: 'single',
+      sets: defaults.sets,
+      reps: defaults.reps,
+      rep_type: defaults.rep_type,
       reps_right: null,
-      weight: null,
-      weight_unit: 'lbs',
-      intensity: null,
+      weight: defaults.weight,
+      weight_unit: defaults.weight_unit,
+      intensity: defaults.intensity,
       notes: null,
     }
     setEntries((prev) => [...prev, entry])
@@ -158,17 +171,18 @@ export default function WorkoutTemplateForm({
       // Insert from pool at position
       const exerciseId = e.dataTransfer.getData('text/plain')
       if (exerciseId) {
+        const defaults = getDefaults(exerciseId)
         const entry: TemplateFormEntry = {
           id: crypto.randomUUID(),
           exercise_id: exerciseId,
           sort_order: targetIdx,
-          sets: 3,
-          reps: 10,
-          rep_type: 'single',
+          sets: defaults.sets,
+          reps: defaults.reps,
+          rep_type: defaults.rep_type,
           reps_right: null,
-          weight: null,
-          weight_unit: 'lbs',
-          intensity: null,
+          weight: defaults.weight,
+          weight_unit: defaults.weight_unit,
+          intensity: defaults.intensity,
           notes: null,
         }
         setEntries((prev) => {
