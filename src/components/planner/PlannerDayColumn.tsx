@@ -1,5 +1,5 @@
 import { useState, useRef, type DragEvent, type ReactNode } from 'react'
-import { X, ChevronRight, Sun, CloudSun, Moon } from 'lucide-react'
+import { X, ChevronRight, Sun, CloudSun, Moon, Minus } from 'lucide-react'
 import { format, isToday } from 'date-fns'
 import type { PlannedEntry, PlannedEntryUpdate, Session } from '@/hooks/useWeeklyPlan'
 import { SESSIONS, SESSION_LABELS } from '@/hooks/useWeeklyPlan'
@@ -11,6 +11,7 @@ import EntryDetailEditor from '@/components/programs/EntryDetailEditor'
 import { cn } from '@/lib/utils'
 
 const SESSION_ICONS: Record<Session, typeof Sun> = {
+  all: Minus,
   morning: Sun,
   noon: CloudSun,
   night: Moon,

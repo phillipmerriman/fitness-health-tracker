@@ -51,7 +51,7 @@ export default function TodaysWorkoutsPage() {
 
   // Filter entries for the selected date
   const dayEntries = useMemo(() => {
-    const sessionOrder = { morning: 0, noon: 1, night: 2 }
+    const sessionOrder = { all: 0, morning: 1, noon: 2, night: 3 }
     return entries
       .filter((e) => e.date === dateKey)
       .sort((a, b) => (sessionOrder[a.session] - sessionOrder[b.session]) || (a.sort_order - b.sort_order))

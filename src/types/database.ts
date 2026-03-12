@@ -426,7 +426,7 @@ export interface Database {
           exercise_id: string
           timer_id: string | null
           date: string
-          session: 'morning' | 'noon' | 'night'
+          session: 'all' | 'morning' | 'noon' | 'night'
           sort_order: number
           sets: number | null
           reps: number | null
@@ -445,7 +445,7 @@ export interface Database {
           exercise_id: string
           timer_id?: string | null
           date: string
-          session?: 'morning' | 'noon' | 'night'
+          session?: 'all' | 'morning' | 'noon' | 'night'
           sort_order?: number
           sets?: number | null
           reps?: number | null
@@ -462,7 +462,7 @@ export interface Database {
           exercise_id?: string
           timer_id?: string | null
           date?: string
-          session?: 'morning' | 'noon' | 'night'
+          session?: 'all' | 'morning' | 'noon' | 'night'
           sort_order?: number
           sets?: number | null
           reps?: number | null

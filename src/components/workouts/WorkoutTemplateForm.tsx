@@ -224,7 +224,7 @@ export default function WorkoutTemplateForm({
       user_id: '',
       program_id: null,
       date: '',
-      session: entry.session ?? 'morning',
+      session: entry.session ?? 'all',
       timer_id: entry.timer_id ?? null,
     }
   }
