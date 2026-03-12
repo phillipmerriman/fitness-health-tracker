@@ -40,14 +40,14 @@ export default function TodaysWorkoutsPage() {
   // Find active program
   const activeProgram = programs.find((p) => p.is_active) ?? null
 
-  const { entries, loading: entriesLoading } = useWeeklyPlan({
+  const { entries } = useWeeklyPlan({
     startDate: viewDate,
     weekOffset: 0,
     programId: activeProgram?.id ?? null,
     includeUnscoped: true,
   })
 
-  const loading = exercisesLoading || entriesLoading
+  const loading = exercisesLoading
 
   // Filter entries for the selected date
   const dayEntries = useMemo(() => {
