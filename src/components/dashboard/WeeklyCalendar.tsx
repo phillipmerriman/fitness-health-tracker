@@ -22,7 +22,7 @@ interface WeeklyCalendarProps {
   onDeleteSession?: (id: string) => Promise<unknown>
 }
 
-export default function WeeklyCalendar({ sessions, activeProgram, onUpdateSession, onCreateSession, onDeleteSession }: WeeklyCalendarProps) {
+export default function WeeklyCalendar({ sessions, activeProgram, onUpdateSession, onCreateSession, onDeleteSession: _onDeleteSession }: WeeklyCalendarProps) {
   const { profile } = useAuth()
   const preferredUnit = profile?.preferred_weight_unit ?? 'lbs'
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)

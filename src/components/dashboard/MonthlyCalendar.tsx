@@ -34,7 +34,7 @@ interface MonthlyCalendarProps {
   onDeleteSession?: (id: string) => Promise<unknown>
 }
 
-export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSession, onCreateSession, onDeleteSession }: MonthlyCalendarProps) {
+export default function MonthlyCalendar({ sessions, activeProgram, onUpdateSession, onCreateSession, onDeleteSession: _onDeleteSession }: MonthlyCalendarProps) {
   const { user } = useAuth()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)

@@ -219,6 +219,7 @@ export default function useWorkoutTemplates() {
         target_duration_sec: entry.rep_type === 'time' ? entry.reps : null,
         intensity: entry.intensity ?? null,
         user_notes: entry.notes ?? null,
+        timer_id: entry.timer_id ?? null,
       }
       await addExercise(template.id, {
         exercise_id: entry.exercise_id,
