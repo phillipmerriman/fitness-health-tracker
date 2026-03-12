@@ -47,6 +47,12 @@ export interface Database {
           notes: string | null
           color: string | null
           is_archived: boolean
+          default_sets: number | null
+          default_reps: number | null
+          default_rep_type: 'single' | 'left_right' | 'time' | 'ladder_up' | 'double_ladder_up' | 'reverse_ladder' | 'double_reverse_ladder' | 'ladder' | 'double_ladder' | 'reps_per_minute' | 'left_right_per_minute' | 'ladder_up_per_minute' | 'double_ladder_up_per_minute' | 'reverse_ladder_per_minute' | 'double_reverse_ladder_per_minute' | 'ladder_per_minute' | 'double_ladder_per_minute'
+          default_weight: number | null
+          default_weight_unit: 'lbs' | 'kg' | 'pood' | 'bodyweight'
+          default_intensity: 'light' | 'heavy' | null
           created_at: string
           updated_at: string
         }
@@ -61,6 +67,12 @@ export interface Database {
           notes?: string | null
           color?: string | null
           is_archived?: boolean
+          default_sets?: number | null
+          default_reps?: number | null
+          default_rep_type?: 'single' | 'left_right' | 'time' | 'ladder_up' | 'double_ladder_up' | 'reverse_ladder' | 'double_reverse_ladder' | 'ladder' | 'double_ladder' | 'reps_per_minute' | 'left_right_per_minute' | 'ladder_up_per_minute' | 'double_ladder_up_per_minute' | 'reverse_ladder_per_minute' | 'double_reverse_ladder_per_minute' | 'ladder_per_minute' | 'double_ladder_per_minute'
+          default_weight?: number | null
+          default_weight_unit?: 'lbs' | 'kg' | 'pood' | 'bodyweight'
+          default_intensity?: 'light' | 'heavy' | null
           created_at?: string
           updated_at?: string
         }
@@ -73,6 +85,12 @@ export interface Database {
           notes?: string | null
           color?: string | null
           is_archived?: boolean
+          default_sets?: number | null
+          default_reps?: number | null
+          default_rep_type?: 'single' | 'left_right' | 'time' | 'ladder_up' | 'double_ladder_up' | 'reverse_ladder' | 'double_reverse_ladder' | 'ladder' | 'double_ladder' | 'reps_per_minute' | 'left_right_per_minute' | 'ladder_up_per_minute' | 'double_ladder_up_per_minute' | 'reverse_ladder_per_minute' | 'double_reverse_ladder_per_minute' | 'ladder_per_minute' | 'double_ladder_per_minute'
+          default_weight?: number | null
+          default_weight_unit?: 'lbs' | 'kg' | 'pood' | 'bodyweight'
+          default_intensity?: 'light' | 'heavy' | null
           updated_at?: string
         }
         Relationships: []
